@@ -2,6 +2,10 @@ package io.github.t3wv.nfse.utils;
 
 import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalDPS;
 import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfDPS;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfPedReg;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfPedRegEventoTE;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfoPessoa;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfoPrestador;
 import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalPedRegEvt;
 import org.apache.commons.lang3.StringUtils;
 
@@ -116,13 +120,13 @@ public abstract class NFSeUtils {
      */
     public static String gerarEventoId(NFSeSefinNacionalPedRegEvt evento) {
         assert evento != null : "Evento deve estar preenchido para gerar o ID";
-        final var infPedReg = evento.getInfPedReg();
+        final NFSeSefinNacionalInfPedReg infPedReg = evento.getInfPedReg();
         assert infPedReg != null : "InfPedReg deve estar preenchido para gerar o ID";
-        final var chaveAcessoNFSE = infPedReg.getChaveAcessoNFSE();
+        final String chaveAcessoNFSE = infPedReg.getChaveAcessoNFSE();
         assert chaveAcessoNFSE != null : "Chave de Acesso da NFSe deve estar preenchida para gerar o ID";
-        final var eventoInfo = infPedReg.getEvento();
+        final NFSeSefinNacionalInfPedRegEventoTE eventoInfo = infPedReg.getEvento();
         assert eventoInfo != null : "Informações do Evento devem estar preenchidas para gerar o ID";
-        final var codigoEvento = eventoInfo.getCodigoEvento();
+        final String codigoEvento = eventoInfo.getCodigoEvento();
         assert codigoEvento != null : "Código do Evento deve estar preenchido para gerar o ID";
 //        final var numeroPedidoRegistroEvento = infPedReg.getNPedRegEvento();
 //        assert numeroPedidoRegistroEvento != null : "Número do Pedido de Registro do Evento deve estar preenchido para gerar o ID";
@@ -158,19 +162,19 @@ public abstract class NFSeUtils {
         String inscricaoFederalEmitente;
         switch (infDps.getTipoEmitente()) {
             case PRESTADOR:
-                final var prestador = infDps.getPrestador();
+                final NFSeSefinNacionalInfoPrestador prestador = infDps.getPrestador();
                 if (prestador == null)
                     throw new AssertionError("Prestador deve estar preenchido para obter a inscricao federal");
                 inscricaoFederalEmitente = StringUtils.firstNonBlank(prestador.getCNPJ(), prestador.getCPF());
                 break;
             case TOMADOR:
-                final var tomador = infDps.getTomador();
+                final NFSeSefinNacionalInfoPessoa tomador = infDps.getTomador();
                 if (tomador == null)
                     throw new AssertionError("Tomador deve estar preenchido para obter a inscricao federal");
                 inscricaoFederalEmitente = StringUtils.firstNonBlank(tomador.getCNPJ(), tomador.getCPF());
                 break;
             case INTERMEDIARIO:
-                final var intermediario = infDps.getIntermediario();
+                final NFSeSefinNacionalInfoPessoa intermediario = infDps.getIntermediario();
                 if (intermediario == null)
                     throw new AssertionError("Intermediario deve estar preenchido para obter a inscricao federal");
                 inscricaoFederalEmitente = StringUtils.firstNonBlank(intermediario.getCNPJ(), intermediario.getCPF());
@@ -184,14 +188,14 @@ public abstract class NFSeUtils {
             throw new IllegalArgumentException("Inscrição Federal do emitente não pode ser nula para geração do ID da DPS");
         }
 
-        final var tipoInscricaoFederal = NFSeUtils.isCpfValido(inscricaoFederalEmitente) ? 1 : (NFSeUtils.isCnpjValido(inscricaoFederalEmitente) ? 2 : 0);
+        final int tipoInscricaoFederal = NFSeUtils.isCpfValido(inscricaoFederalEmitente) ? 1 : (NFSeUtils.isCnpjValido(inscricaoFederalEmitente) ? 2 : 0);
         assert tipoInscricaoFederal != 0 : "Inscrição Federal do emitente inválida para geração do ID da DPS";
 
         // Formata os campos conforme o layout do ID
-        final var codigoMunicipioEmissaoFormatado = StringUtils.leftPad(codigoMunicipioEmissao, 7, '0');
-        final var inscricaoFederalFormatada = StringUtils.leftPad(inscricaoFederalEmitente, 14, '0');
-        final var serieFormatada = StringUtils.leftPad(String.valueOf(serie), 5, '0');
-        final var numeroDPSFormatado = StringUtils.leftPad(String.valueOf(numeroDPS), 15, '0');
+        final String codigoMunicipioEmissaoFormatado = StringUtils.leftPad(codigoMunicipioEmissao, 7, '0');
+        final String inscricaoFederalFormatada = StringUtils.leftPad(inscricaoFederalEmitente, 14, '0');
+        final String serieFormatada = StringUtils.leftPad(String.valueOf(serie), 5, '0');
+        final String numeroDPSFormatado = StringUtils.leftPad(String.valueOf(numeroDPS), 15, '0');
         return String.format("DPS%s%s%s%s%s", codigoMunicipioEmissaoFormatado, tipoInscricaoFederal, inscricaoFederalFormatada, serieFormatada, numeroDPSFormatado);
     }
 

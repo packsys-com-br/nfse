@@ -12,7 +12,7 @@ public class NFSeBigDecimalTransformer implements Transform<BigDecimal> {
         private final DecimalFormat formatter;
 
         public NFSeBigDecimalTransformer() {
-            DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.of("pt", "BR"));
+            DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("pt", "BR"));
             symbols.setDecimalSeparator(',');
 
             formatter = new DecimalFormat("#,##0.00", symbols);

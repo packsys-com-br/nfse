@@ -25,7 +25,7 @@ public class NFSeSCSaoJosePesquisaCodigoAutenticidadeEnvio {
     }
 
     public String toXml() throws Exception {
-        final var registryMatcher = new NFSeRegistryMatcher();
+        final NFSeRegistryMatcher registryMatcher = new NFSeRegistryMatcher();
         NFSePersister serializer = new NFSePersister(true, registryMatcher);
         StringWriter writer = new StringWriter();
         serializer.write(this, writer);

@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 
 public class NFSeBarueriRPSArquivoEnvio {
@@ -21,21 +22,28 @@ public class NFSeBarueriRPSArquivoEnvio {
     }
 
     public NFSeBarueriRPSArquivoEnvio addRegistro(final String linha) {
-        final var tipoRegistro = linha.substring(0, 1);
+        final String tipoRegistro = linha.substring(0, 1);
         switch (tipoRegistro) {
-            case NFSeBarueriRPSArquivoEnvioRegistroTipo1.TIPO_REGISTRO ->
-                    this.registros.add(new NFSeBarueriRPSArquivoEnvioRegistroTipo1().fromLinha(linha));
-            case NFSeBarueriRPSArquivoEnvioRegistroTipo2.TIPO_REGISTRO ->
-                    this.registros.add(new NFSeBarueriRPSArquivoEnvioRegistroTipo2().fromLinha(linha));
-            case NFSeBarueriRPSArquivoEnvioRegistroTipo3.TIPO_REGISTRO ->
-                    this.registros.add(new NFSeBarueriRPSArquivoEnvioRegistroTipo3().fromLinha(linha));
-            case NFSeBarueriRPSArquivoEnvioRegistroTipo4.TIPO_REGISTRO ->
-                    this.registros.add(new NFSeBarueriRPSArquivoEnvioRegistroTipo4().fromLinha(linha));
-            case NFSeBarueriRPSArquivoEnvioRegistroTipo5.TIPO_REGISTRO ->
-                    this.registros.add(new NFSeBarueriRPSArquivoEnvioRegistroTipo5().fromLinha(linha));
-            case NFSeBarueriRPSArquivoEnvioRegistroTipo9.TIPO_REGISTRO ->
-                    this.registros.add(new NFSeBarueriRPSArquivoEnvioRegistroTipo9().fromLinha(linha));
-            default -> throw new IllegalStateException("Tipo de registro desconhecido: " + tipoRegistro);
+            case NFSeBarueriRPSArquivoEnvioRegistroTipo1.TIPO_REGISTRO:
+                this.registros.add(new NFSeBarueriRPSArquivoEnvioRegistroTipo1().fromLinha(linha));
+                break;
+            case NFSeBarueriRPSArquivoEnvioRegistroTipo2.TIPO_REGISTRO:
+                this.registros.add(new NFSeBarueriRPSArquivoEnvioRegistroTipo2().fromLinha(linha));
+                break;
+            case NFSeBarueriRPSArquivoEnvioRegistroTipo3.TIPO_REGISTRO:
+                this.registros.add(new NFSeBarueriRPSArquivoEnvioRegistroTipo3().fromLinha(linha));
+                break;
+            case NFSeBarueriRPSArquivoEnvioRegistroTipo4.TIPO_REGISTRO:
+                this.registros.add(new NFSeBarueriRPSArquivoEnvioRegistroTipo4().fromLinha(linha));
+                break;
+            case NFSeBarueriRPSArquivoEnvioRegistroTipo5.TIPO_REGISTRO:
+                this.registros.add(new NFSeBarueriRPSArquivoEnvioRegistroTipo5().fromLinha(linha));
+                break;
+            case NFSeBarueriRPSArquivoEnvioRegistroTipo9.TIPO_REGISTRO:
+                this.registros.add(new NFSeBarueriRPSArquivoEnvioRegistroTipo9().fromLinha(linha));
+                break;
+            default:
+                throw new IllegalStateException("Tipo de registro desconhecido: " + tipoRegistro);
         }
         return this;
     }
@@ -45,17 +53,17 @@ public class NFSeBarueriRPSArquivoEnvio {
     }
 
     public List<String> toLinhas() {
-        final var linhas = new ArrayList<String>(this.registros.size());
-        for (final var registro : this.registros) {
+        final List<String> linhas = new ArrayList<String>(this.registros.size());
+        for (final NFSeBarueriRPSArquivoEnvioRegistro registro : this.registros) {
             linhas.add(registro.toLinha());
         }
         return linhas;
     }
 
     public byte[] toByteArray() throws Exception {
-        try (var baos = new ByteArrayOutputStream()) {
-            try (var writer = new OutputStreamWriter(baos, StandardCharsets.ISO_8859_1)) {
-                for (final var registro : this.registros) {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            try (OutputStreamWriter writer = new OutputStreamWriter(baos, StandardCharsets.ISO_8859_1)) {
+                for (final NFSeBarueriRPSArquivoEnvioRegistro registro : this.registros) {
                     writer.write(registro.toLinha());
                     writer.write(WSBarueri.CHR13);
                     writer.write(WSBarueri.CHR10);
@@ -71,25 +79,25 @@ public class NFSeBarueriRPSArquivoEnvio {
     }
 
     public static NFSeBarueriRPSArquivoEnvio fromBase64(String arquivoRPSBase64) {
-        final var arquivoBytes = Base64.getDecoder().decode(arquivoRPSBase64);
-        final var arquivoString = new String(arquivoBytes, StandardCharsets.ISO_8859_1);
-        final var arquivoLinhas = arquivoString.split("\r\n");
-        final var envio = new NFSeBarueriRPSArquivoEnvio();
+        final byte[] arquivoBytes = Base64.getDecoder().decode(arquivoRPSBase64);
+        final String arquivoString = new String(arquivoBytes, StandardCharsets.ISO_8859_1);
+        final String[] arquivoLinhas = arquivoString.split("\r\n");
+        final NFSeBarueriRPSArquivoEnvio envio = new NFSeBarueriRPSArquivoEnvio();
         Arrays.stream(arquivoLinhas).forEach(envio::addRegistro);
         return envio;
     }
 
     public List<NFSeBarueriRetornoErros> getErros() {
         if (!this.registros.isEmpty()) {
-            final var erros = new ArrayList<NFSeBarueriRetornoErros>();
-            for (final var registro : this.registros) {
+            final List<NFSeBarueriRetornoErros> erros = new ArrayList<NFSeBarueriRetornoErros>();
+            for (final NFSeBarueriRPSArquivoEnvioRegistro registro : this.registros) {
                 if (registro.getErros() != null && !registro.getErros().isEmpty()) {
                     erros.addAll(registro.getErros());
                 }
             }
             return erros;
         }
-        return List.of();
+        return Collections.emptyList();
 
     }
 }

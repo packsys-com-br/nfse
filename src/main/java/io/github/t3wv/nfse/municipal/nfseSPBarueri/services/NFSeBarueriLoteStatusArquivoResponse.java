@@ -26,7 +26,7 @@ public class NFSeBarueriLoteStatusArquivoResponse {
     }
 
     public String toXml() throws Exception {
-        final var writer = new StringWriter();
+        final StringWriter writer = new StringWriter();
         new NFSePersister().write(this, writer);
         return writer.toString();
     }
@@ -161,7 +161,7 @@ public class NFSeBarueriLoteStatusArquivoResponse {
         }
 
         public String toXml() throws Exception {
-            final var writer = new StringWriter();
+            final StringWriter writer = new StringWriter();
             new NFSePersister().write(this, writer);
             return writer.toString();
         }

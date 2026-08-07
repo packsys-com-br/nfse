@@ -2,6 +2,9 @@ package io.github.t3wv.nfse.municipal.nfseSPSaoPaulo.utils;
 
 import io.github.t3wv.nfse.NFSeConfig;
 import io.github.t3wv.nfse.municipal.nfseSPSaoPaulo.tipos.TpRPS;
+import io.github.t3wv.nfse.municipal.nfseSPSaoPaulo.tipos.TpChaveRPS;
+import io.github.t3wv.nfse.municipal.nfseSPSaoPaulo.tipos.TpCPFCNPJ;
+import io.github.t3wv.nfse.municipal.nfseSPSaoPaulo.tipos.TpCPFCNPJNIF;
 import io.github.t3wv.nfse.municipal.nfseSPSaoPaulo.requests.NFSeSPSaoPauloRequestEnvioRPS;
 import io.github.t3wv.nfse.utils.NFSeUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -17,12 +20,12 @@ public abstract class NFSeSPSaoPauloUtils {
      * <a href="https://notadomilhao.sf.prefeitura.sp.gov.br/wp-content/uploads/2025/11/NFe_Web_Service-4.pdf"> Página 47</a>
      */
     public static NFSeSPSaoPauloRequestEnvioRPS assinarRPSs(NFSeConfig config, NFSeSPSaoPauloRequestEnvioRPS pedido) {
-        final var versaoSchemas = pedido.getCabecalho().getVersao();
+        final String versaoSchemas = pedido.getCabecalho().getVersao();
         for (TpRPS rps : pedido.getRps()) {
             try {
-                final var assinaturaDigitalString = new StringBuilder();
-                final var chaveRps = rps.getChaveRPS();
-                final var tomador = rps.getCPFCNPJTomador();
+                final StringBuilder assinaturaDigitalString = new StringBuilder();
+                final TpChaveRPS chaveRps = rps.getChaveRPS();
+                final TpCPFCNPJNIF tomador = rps.getCPFCNPJTomador();
 
                 assinaturaDigitalString.append(StringUtils.leftPad(chaveRps.getInscricaoPrestador(), versaoSchemas.equals("2") ? 12 : 8, "0"));
                 assinaturaDigitalString.append(StringUtils.rightPad(StringUtils.trimToEmpty(chaveRps.getSerieRPS()), 5));
@@ -38,14 +41,14 @@ public abstract class NFSeSPSaoPauloUtils {
                 assinaturaDigitalString.append(StringUtils.leftPad(StringUtils.firstNonBlank(tomador.getCPF(), tomador.getCNPJ()), 14, "0"));
 
                 if (rps.getCPFCNPJIntermediario() != null) {
-                    final var intermediario = rps.getCPFCNPJIntermediario();
+                    final TpCPFCNPJ intermediario = rps.getCPFCNPJIntermediario();
                     assinaturaDigitalString.append(NFSeUtils.isCpfValido(intermediario.getCPF()) ? "1" : NFSeUtils.isCnpjValido(intermediario.getCNPJ()) ? "2" : "3");
                     assinaturaDigitalString.append(StringUtils.leftPad(StringUtils.firstNonBlank(intermediario.getCPF(), intermediario.getCNPJ()), 14, "0"));
                     assinaturaDigitalString.append(StringUtils.trimToEmpty(rps.getISSRetidoIntermediario()));
                     assinaturaDigitalString.append(versaoSchemas.equals("2") ? (tomador.getNaoNIF() != null ? String.valueOf(tomador.getNaoNIF()) : StringUtils.trim(tomador.getNIF())) : "");
                 }
 
-                final var assinaturaDigital = NFSeSPSaoPauloUtils.gerarAssinaturaDigital(config, assinaturaDigitalString.toString());
+                final String assinaturaDigital = NFSeSPSaoPauloUtils.gerarAssinaturaDigital(config, assinaturaDigitalString.toString());
                 rps.setAssinatura(assinaturaDigital);
             } catch (Exception e) {
                 throw new RuntimeException("Erro ao gerar assinatura digital do RPS: " + e.getMessage(), e);

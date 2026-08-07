@@ -2,6 +2,7 @@ package io.github.t3wv.nfse.nacional;
 
 import io.github.t3wv.nfse.NFSeConfig;
 import io.github.t3wv.nfse.utils.NFSeHttpClient;
+import io.github.t3wv.nfse.utils.NFSeHttpResponse;
 import io.github.t3wv.nfse.NFSeLogger;
 import io.github.t3wv.nfse.utils.NFSeObjectMapper;
 import io.github.t3wv.nfse.nacional.classes.parametrosmunicipais.consulta.*;
@@ -31,15 +32,15 @@ public class WSParametrosMunicipais implements NFSeLogger {
      */
     public NFSeParametrosMunicipaisConvenioResponse consultaConvenioMunicipio(final String codigoMunicipio) throws Exception {
         //normaliza e valida o codigo do municipio
-        final var codigoMunicipioNumerico = codigoMunicipio.replaceAll("\\D", "");
+        final String codigoMunicipioNumerico = codigoMunicipio.replaceAll("\\D", "");
         if (!codigoMunicipioNumerico.matches("\\d{7}")) {
             throw new IllegalArgumentException("O código do município deve conter exatamente 7 dígitos numéricos (IBGE)!");
         }
-        final var url = new URI(String.format("%s/%s/convenio", this.config.isTeste() ? URL_BASE_HOMOLOGACAO : URL_BASE_PRODUCAO, codigoMunicipioNumerico));
-        final var response = new NFSeHttpClient(config).sendGetRequest(url);
+        final URI url = new URI(String.format("%s/%s/convenio", this.config.isTeste() ? URL_BASE_HOMOLOGACAO : URL_BASE_PRODUCAO, codigoMunicipioNumerico));
+        final NFSeHttpResponse<String> response = new NFSeHttpClient(config).sendGetRequest(url);
         this.getLogger().info("Response: {}", response);
         if (response.statusCode() != 200) {
-            throw new Exception("Consulta de parametros municipais retornou erro '%d' para o municipio '%s'!".formatted(response.statusCode(), codigoMunicipioNumerico));
+            throw new Exception(String.format("Consulta de parametros municipais retornou erro '%d' para o municipio '%s'!", response.statusCode(), codigoMunicipioNumerico));
         } else {
             return this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeParametrosMunicipaisConvenioResponse.class);
         }
@@ -56,35 +57,35 @@ public class WSParametrosMunicipais implements NFSeLogger {
      */
     public NFSeParametrosMunicipaisAliquota consultaAliquotaMunicipioServicoCompetencia(final String codigoMunicipio, final String codigoServico, final LocalDate competencia) throws Exception {
         //normaliza e valida o codigo do municipio
-        final var codigoMunicipioNumerico = codigoMunicipio.replaceAll("\\D", "");
+        final String codigoMunicipioNumerico = codigoMunicipio.replaceAll("\\D", "");
         if (!codigoMunicipioNumerico.matches("\\d{7}")) {
             throw new IllegalArgumentException("O código do município deve conter exatamente 7 dígitos numéricos (IBGE)!");
         }
 
         //normaliza e valida o codigo do serviço, para que tenha 6 ou 9 dígitos numéricos
-        final var codigoServicoNumerico = codigoServico.replaceAll("\\D", "");
+        final String codigoServicoNumerico = codigoServico.replaceAll("\\D", "");
         if (!codigoServicoNumerico.matches("\\d{6}|\\d{9}")) {
             throw new IllegalArgumentException("O código do serviço deve conter 6 ou 9 dígitos numéricos!");
         }
-        final var codigoServicoNormalizado = codigoServicoNumerico.length() == 6 ? codigoServicoNumerico + "000" : codigoServicoNumerico;
-        final var codigoServicoFormatado = String.format("%s.%s.%s.%s", codigoServicoNormalizado.substring(0, 2), codigoServicoNormalizado.substring(2, 4), codigoServicoNormalizado.substring(4, 6), codigoServicoNormalizado.substring(6, 9));
+        final String codigoServicoNormalizado = codigoServicoNumerico.length() == 6 ? codigoServicoNumerico + "000" : codigoServicoNumerico;
+        final String codigoServicoFormatado = String.format("%s.%s.%s.%s", codigoServicoNormalizado.substring(0, 2), codigoServicoNormalizado.substring(2, 4), codigoServicoNormalizado.substring(4, 6), codigoServicoNormalizado.substring(6, 9));
 
 
         //normaliza e valida a competencia
-        final var competenciaNormalizada = competencia != null ? competencia : LocalDate.now();
-        final var competenciaFormatada = formataCompetencia(competenciaNormalizada);
+        final LocalDate competenciaNormalizada = competencia != null ? competencia : LocalDate.now();
+        final String competenciaFormatada = formataCompetencia(competenciaNormalizada);
 
         //faz a consulta
-        final var url = new URI(String.format("%s/%s/%s/%s/aliquota", this.config.isTeste() ? URL_BASE_HOMOLOGACAO : URL_BASE_PRODUCAO, codigoMunicipioNumerico, codigoServicoFormatado, competenciaFormatada));
-        final var response = new NFSeHttpClient(config).sendGetRequest(url);
+        final URI url = new URI(String.format("%s/%s/%s/%s/aliquota", this.config.isTeste() ? URL_BASE_HOMOLOGACAO : URL_BASE_PRODUCAO, codigoMunicipioNumerico, codigoServicoFormatado, competenciaFormatada));
+        final NFSeHttpResponse<String> response = new NFSeHttpClient(config).sendGetRequest(url);
         this.getLogger().info("Response: {}", response);
 
         if (response.statusCode() != 200) {
-            throw new Exception("Consulta de alíquotas retornou erro '%d' para o municipio '%s', serviço '%s', competência '%s'!".formatted(response.statusCode(), codigoMunicipioNumerico, codigoServicoFormatado, competenciaFormatada));
+            throw new Exception(String.format("Consulta de alíquotas retornou erro '%d' para o municipio '%s', serviço '%s', competência '%s'!", response.statusCode(), codigoMunicipioNumerico, codigoServicoFormatado, competenciaFormatada));
         } else {
-            final var nfSeParametrosMunicipaisAliquotasResponse = this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeParametrosMunicipaisAliquotasResponse.class);
+            final NFSeParametrosMunicipaisAliquotasResponse nfSeParametrosMunicipaisAliquotasResponse = this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeParametrosMunicipaisAliquotasResponse.class);
             return nfSeParametrosMunicipaisAliquotasResponse.getAliquotas() != null && nfSeParametrosMunicipaisAliquotasResponse.getAliquotas().containsKey(codigoServicoFormatado) ?
-                    nfSeParametrosMunicipaisAliquotasResponse.getAliquotas().get(codigoServicoFormatado).getFirst() :
+                    nfSeParametrosMunicipaisAliquotasResponse.getAliquotas().get(codigoServicoFormatado).get(0) :
                     null;
         }
     }
@@ -98,8 +99,8 @@ public class WSParametrosMunicipais implements NFSeLogger {
      * @throws Exception Se ocorrer um erro durante a requisição ou no processamento da resposta.
      */
     public NFSeParametrosMunicipaisAliquotasResponse consultaHistoricoAliquotaMunicipioServico(final String codigoMunicipio, final String codigoServico) throws Exception {
-        final var url = new URI(String.format("%s/%s/%s/historicoaliquotas", this.config.isTeste() ? URL_BASE_HOMOLOGACAO : URL_BASE_PRODUCAO, codigoMunicipio, codigoServico));
-        final var response = new NFSeHttpClient(config).sendGetRequest(url);
+        final URI url = new URI(String.format("%s/%s/%s/historicoaliquotas", this.config.isTeste() ? URL_BASE_HOMOLOGACAO : URL_BASE_PRODUCAO, codigoMunicipio, codigoServico));
+        final NFSeHttpResponse<String> response = new NFSeHttpClient(config).sendGetRequest(url);
         this.getLogger().info(response.body());
         return this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeParametrosMunicipaisAliquotasResponse.class);
     }
@@ -114,9 +115,9 @@ public class WSParametrosMunicipais implements NFSeLogger {
      * @throws Exception Se ocorrer um erro durante a requisição ou no processamento da resposta.
      */
     public NFSeParametrosMunicipaisBeneficioResponse consultaBeneficioMunicipioBeneficioCompetencia(final String codigoMunicipio, final String numeroBeneficio, final LocalDate competencia) throws Exception {
-        final var competenciaFormatada = formataCompetencia(competencia);
-        final var url = new URI(String.format("%s/%s/%s/%s/beneficio", this.config.isTeste() ? URL_BASE_HOMOLOGACAO : URL_BASE_PRODUCAO, codigoMunicipio, numeroBeneficio, competenciaFormatada));
-        final var response = new NFSeHttpClient(config).sendGetRequest(url);
+        final String competenciaFormatada = formataCompetencia(competencia);
+        final URI url = new URI(String.format("%s/%s/%s/%s/beneficio", this.config.isTeste() ? URL_BASE_HOMOLOGACAO : URL_BASE_PRODUCAO, codigoMunicipio, numeroBeneficio, competenciaFormatada));
+        final NFSeHttpResponse<String> response = new NFSeHttpClient(config).sendGetRequest(url);
         this.getLogger().info(response.body());
         return this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeParametrosMunicipaisBeneficioResponse.class);
     }
@@ -131,9 +132,9 @@ public class WSParametrosMunicipais implements NFSeLogger {
      * @throws Exception Se ocorrer um erro durante a requisição ou no processamento da resposta.
      */
     public NFSeParametrosMunicipaisRegimesEspeciaisResponse consultaRegimesEspeciaisMunicipioServicoCompetencia(final String codigoMunicipio, final String codigoServico, final LocalDate competencia) throws Exception {
-        final var competenciaFormatada = formataCompetencia(competencia);
-        final var url = new URI(String.format("%s/%s/%s/%s/regimes_especiais", this.config.isTeste() ? URL_BASE_HOMOLOGACAO : URL_BASE_PRODUCAO, codigoMunicipio, codigoServico, competenciaFormatada));
-        final var response = new NFSeHttpClient(config).sendGetRequest(url);
+        final String competenciaFormatada = formataCompetencia(competencia);
+        final URI url = new URI(String.format("%s/%s/%s/%s/regimes_especiais", this.config.isTeste() ? URL_BASE_HOMOLOGACAO : URL_BASE_PRODUCAO, codigoMunicipio, codigoServico, competenciaFormatada));
+        final NFSeHttpResponse<String> response = new NFSeHttpClient(config).sendGetRequest(url);
         this.getLogger().info(response.body());
         return this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeParametrosMunicipaisRegimesEspeciaisResponse.class);
     }
@@ -147,9 +148,9 @@ public class WSParametrosMunicipais implements NFSeLogger {
      * @throws Exception Se ocorrer um erro durante a requisição ou no processamento da resposta.
      */
     public NFSeParametrosMunicipaisRetencoesResponse consultaRetencoesMunicipioCompetencia(final String codigoMunicipio, final LocalDate competencia) throws Exception {
-        final var competenciaFormatada = formataCompetencia(competencia);
-        final var url = new URI(String.format("%s/%s/%s/retencoes", this.config.isTeste() ? URL_BASE_HOMOLOGACAO : URL_BASE_PRODUCAO, codigoMunicipio, competenciaFormatada));
-        final var response = new NFSeHttpClient(config).sendGetRequest(url);
+        final String competenciaFormatada = formataCompetencia(competencia);
+        final URI url = new URI(String.format("%s/%s/%s/retencoes", this.config.isTeste() ? URL_BASE_HOMOLOGACAO : URL_BASE_PRODUCAO, codigoMunicipio, competenciaFormatada));
+        final NFSeHttpResponse<String> response = new NFSeHttpClient(config).sendGetRequest(url);
         this.getLogger().info(response.body());
         return this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeParametrosMunicipaisRetencoesResponse.class);
     }

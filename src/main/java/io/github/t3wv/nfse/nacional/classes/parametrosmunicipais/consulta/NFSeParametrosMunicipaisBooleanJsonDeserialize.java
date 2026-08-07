@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -13,12 +15,12 @@ import java.util.List;
  */
 class NFSeParametrosMunicipaisBooleanJsonDeserialize extends JsonDeserializer<Boolean> {
 
-    private static final List<String> VERDADEIROS = List.of("1", "true", "sim", "s");
-    private static final List<String> FALSOS = List.of("0", "false", "nao", "não", "n");
+    private static final List<String> VERDADEIROS = Collections.unmodifiableList(Arrays.asList("1", "true", "sim", "s"));
+    private static final List<String> FALSOS = Collections.unmodifiableList(Arrays.asList("0", "false", "nao", "não", "n"));
 
     @Override
     public Boolean deserialize(final JsonParser p, final DeserializationContext dc) throws IOException {
-        final var valorSanitizado = StringUtils.trimToEmpty(p.getText());
+        final String valorSanitizado = StringUtils.trimToEmpty(p.getText());
         for (String verdadeiro : VERDADEIROS) {
             if (verdadeiro.equalsIgnoreCase(valorSanitizado)) {
                 return true;

@@ -25,7 +25,7 @@ public abstract class NFSeCadeiaCertificados implements NFSeLogger {
     private static final int PORT = 443;
 
     public static byte[] geraCadeiaCertificados(final NFSeConfig config) throws Exception {
-        final var cadeiaCertificadosSenha = config.getCadeiaCertificadosSenha();
+        final String cadeiaCertificadosSenha = config.getCadeiaCertificadosSenha();
         final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
         keyStore.load(null, cadeiaCertificadosSenha.toCharArray());
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
@@ -49,7 +49,7 @@ public abstract class NFSeCadeiaCertificados implements NFSeLogger {
         NFSeLogger.getLogger(NFSeCadeiaCertificados.class).debug("Obtendo cadeia de certificados para a URL: {}", url);
         if (StringUtils.isNotBlank(url)) {
             // obtém o host a partir da URL fornecida - necessário para abrir a conexão SSL
-            final var host = new URI(url).getHost();
+            final String host = new URI(url).getHost();
 
             final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             trustManagerFactory.init((KeyStore) null);

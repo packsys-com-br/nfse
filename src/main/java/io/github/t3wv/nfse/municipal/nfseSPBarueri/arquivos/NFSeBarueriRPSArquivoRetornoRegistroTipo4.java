@@ -44,7 +44,7 @@ public class NFSeBarueriRPSArquivoRetornoRegistroTipo4 extends NFSeBarueriRPSArq
 
     @Override
     public String toLinha() {
-        return "%s%s%s".formatted(
+        return String.format("%s%s%s",
                 TIPO_REGISTRO,
                 tipoOutrosValores.getCodigo(),
                 StringUtils.leftPad(valor.movePointRight(2).toPlainString().replace(".", ""), 15, '0'));

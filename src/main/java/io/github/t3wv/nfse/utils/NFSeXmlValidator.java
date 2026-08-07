@@ -11,6 +11,7 @@ import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,7 +51,7 @@ public class NFSeXmlValidator {
      * @throws SAXException Se houver erro ao processar os esquemas XSD fornecidos.
      */
     public NFSeXmlValidator(final Source... xsd) throws SAXException {
-        final var factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+        final SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
         this.schema = factory.newSchema(xsd);
     }
 
@@ -84,7 +85,7 @@ public class NFSeXmlValidator {
      */
     public boolean isValid(final String xml) {
         assert StringUtils.isNotBlank(xml) : "XML não informado ou inválido";
-        try (final var reader = new StringReader(xml)) {
+        try (final StringReader reader = new StringReader(xml)) {
             return isValid(new StreamSource(reader));
         }
     }
@@ -106,7 +107,7 @@ public class NFSeXmlValidator {
      */
     public boolean isValid(final byte[] xml) {
         assert xml != null : "XML não informado ou inválido";
-        try (final var byteArrayInputStream = new ByteArrayInputStream(xml)) {
+        try (final ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(xml)) {
             return isValid(new StreamSource(byteArrayInputStream));
         } catch (final IOException e) {
             return false;
@@ -203,7 +204,7 @@ public class NFSeXmlValidator {
      */
     public Pair<List<String>, List<String>> validateAndGetErrors(final String xml) throws Exception {
         assert StringUtils.isNotBlank(xml) : "XML não informado ou inválido";
-        try (final var reader = new StringReader(xml)) {
+        try (final StringReader reader = new StringReader(xml)) {
             return validateAndGetErrors(new StreamSource(reader));
         }
     }
@@ -237,7 +238,7 @@ public class NFSeXmlValidator {
      */
     public Pair<List<String>, List<String>> validateAndGetErrors(final byte[] xml) throws Exception {
         assert xml != null : "XML não informado ou inválido";
-        try (final var inputStream = new ByteArrayInputStream(xml)) {
+        try (final ByteArrayInputStream inputStream = new ByteArrayInputStream(xml)) {
             return validateAndGetErrors(new StreamSource(inputStream));
         }
     }
@@ -328,8 +329,8 @@ public class NFSeXmlValidator {
      * @throws Exception Se houver erro durante a validação (ex: erro de I/O, XML malformado).
      */
     private Pair<List<String>, List<String>> validateAndGetErrors(final Source xml) throws Exception {
-        final var xsdErrorHandler = new T3WXmlErrorHandler();
-        final var validator = schema.newValidator();
+        final T3WXmlErrorHandler xsdErrorHandler = new T3WXmlErrorHandler();
+        final Validator validator = schema.newValidator();
         validator.setErrorHandler(xsdErrorHandler);
         validator.validate(xml);
 

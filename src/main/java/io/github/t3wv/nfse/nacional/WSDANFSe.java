@@ -3,9 +3,9 @@ package io.github.t3wv.nfse.nacional;
 import io.github.t3wv.nfse.NFSeConfig;
 import io.github.t3wv.nfse.NFSeLogger;
 import io.github.t3wv.nfse.utils.NFSeHttpClient;
+import io.github.t3wv.nfse.utils.NFSeHttpResponse;
 
 import java.net.URI;
-import java.net.http.HttpResponse;
 
 /**
  * Classe responsável por interagir com o serviço de download do DANFSe.
@@ -31,7 +31,7 @@ public class WSDANFSe implements NFSeLogger {
      */
     public byte[] downloadDANFSePdfByChaveAcesso(final String chaveAcesso) throws Exception {
         //normaliza a chave de acesso removendo quaisquer caracteres não numéricos
-        final var chaveAcessoNormalizada = chaveAcesso.replaceAll("\\D", "");
+        final String chaveAcessoNormalizada = chaveAcesso.replaceAll("\\D", "");
 
         //valida o tamanho da chave de acesso, pois precisa ser exatamente 50 caracteres numericos
         if (!chaveAcessoNormalizada.matches("\\d{50}")) {
@@ -39,11 +39,11 @@ public class WSDANFSe implements NFSeLogger {
         }
 
         //monta a URL de consulta do DANFSe
-        final var url = new URI(String.format("%s/danfse/%s", this.config.isTeste() ? URL_BASE_HOMOLOGACAO : URL_BASE_PRODUCAO, chaveAcessoNormalizada));
-        final var response = new NFSeHttpClient(this.config).sendGetRequest(url, HttpResponse.BodyHandlers.ofByteArray());
+        final URI url = new URI(String.format("%s/danfse/%s", this.config.isTeste() ? URL_BASE_HOMOLOGACAO : URL_BASE_PRODUCAO, chaveAcessoNormalizada));
+        final NFSeHttpResponse<byte[]> response = new NFSeHttpClient(this.config).sendGetRequestAsBytes(url);
         this.getLogger().info("Response: {}", response);
         if (response.statusCode() != 200) {
-            throw new Exception("Consulta de DANFSe '%s' retornou erro '%d'!".formatted(chaveAcessoNormalizada, response.statusCode()));
+            throw new Exception(String.format("Consulta de DANFSe '%s' retornou erro '%d'!", chaveAcessoNormalizada, response.statusCode()));
         } else {
             return response.body();
         }

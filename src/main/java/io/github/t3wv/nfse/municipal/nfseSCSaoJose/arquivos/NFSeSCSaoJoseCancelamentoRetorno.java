@@ -39,7 +39,7 @@ public class NFSeSCSaoJoseCancelamentoRetorno {
     }
 
     public String toXml() throws Exception {
-        final var registryMatcher = new NFSeRegistryMatcher();
+        final NFSeRegistryMatcher registryMatcher = new NFSeRegistryMatcher();
         registryMatcher.bind(boolean.class, new NFSeBooleanTransformer());
         registryMatcher.bind(Boolean.class, new NFSeBooleanTransformer());
         registryMatcher.bind(BigDecimal.class, new NFSeBigDecimalTransformer());

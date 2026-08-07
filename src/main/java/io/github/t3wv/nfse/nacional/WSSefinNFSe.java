@@ -19,8 +19,10 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.AbstractMap;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPOutputStream;
 
 public class WSSefinNFSe implements NFSeLogger {
 
@@ -71,7 +73,7 @@ public class WSSefinNFSe implements NFSeLogger {
      */
     public Map.Entry<Integer, Object> buscarNFSeByChaveAcesso(final String chaveAcesso) throws Exception {
         //normaliza a chave de acesso removendo quaisquer caracteres não numéricos
-        final var chaveAcessoNormalizada = chaveAcesso.replaceAll("\\D", "");
+        final String chaveAcessoNormalizada = chaveAcesso.replaceAll("\\D", "");
 
         //valida o tamanho da chave de acesso, pois precisa ser exatamente 50 caracteres numericos
         if (!chaveAcessoNormalizada.matches("\\d{50}")) {
@@ -79,14 +81,20 @@ public class WSSefinNFSe implements NFSeLogger {
         }
 
         //busca os dados
-        final var url = new URI(String.format("%s/%s", config.isTeste() ? URL_HOMOLOGACAO_NFSE : URL_PRODUCAO_NFSE, chaveAcesso));
-        final var response = new NFSeHttpClient(config).sendGetRequest(url);
+        final URI url = new URI(String.format("%s/%s", config.isTeste() ? URL_HOMOLOGACAO_NFSE : URL_PRODUCAO_NFSE, chaveAcesso));
+        final NFSeHttpResponse<String> response = new NFSeHttpClient(config).sendGetRequest(url);
         this.getLogger().info("Response {}: {}", response.statusCode(), response.body());
-        return switch (response.statusCode()) {
-            case HttpURLConnection.HTTP_OK -> new AbstractMap.SimpleEntry<>(HttpURLConnection.HTTP_OK, this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalGetResponse.class));
-            case HttpURLConnection.HTTP_BAD_REQUEST, HttpURLConnection.HTTP_UNAUTHORIZED, HttpURLConnection.HTTP_FORBIDDEN, HttpURLConnection.HTTP_NOT_FOUND -> new AbstractMap.SimpleEntry<>(response.statusCode(), this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalResponseErro.class));
-            default -> throw new IllegalStateException("Consulta de NFSe '%s' retornou erro '%d'!".formatted(chaveAcessoNormalizada, response.statusCode()));
-        };
+        switch (response.statusCode()) {
+            case HttpURLConnection.HTTP_OK:
+                return new AbstractMap.SimpleEntry<>(HttpURLConnection.HTTP_OK, this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalGetResponse.class));
+            case HttpURLConnection.HTTP_BAD_REQUEST:
+            case HttpURLConnection.HTTP_UNAUTHORIZED:
+            case HttpURLConnection.HTTP_FORBIDDEN:
+            case HttpURLConnection.HTTP_NOT_FOUND:
+                return new AbstractMap.SimpleEntry<>(response.statusCode(), this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalResponseErro.class));
+            default:
+                throw new IllegalStateException(String.format("Consulta de NFSe '%s' retornou erro '%d'!", chaveAcessoNormalizada, response.statusCode()));
+        }
     }
 
     /**
@@ -97,13 +105,13 @@ public class WSSefinNFSe implements NFSeLogger {
      * @throws Exception Caso erro.
      */
     public String buscarNFSeXmlByChaveAcesso(final String nfseChaveAcesso) throws Exception {
-        final var response = this.buscarNFSeByChaveAcesso(nfseChaveAcesso);
+        final Map.Entry<Integer, Object> response = this.buscarNFSeByChaveAcesso(nfseChaveAcesso);
         if (response.getKey().equals(HttpURLConnection.HTTP_OK)) {
-            final var nfse = (NFSeSefinNacionalGetResponse) response.getValue();
+            final NFSeSefinNacionalGetResponse nfse = (NFSeSefinNacionalGetResponse) response.getValue();
             return NFSeUtils.decodeXmlGZipB64(nfse.getNfseXmlGZipB64());
         } else {
-            final var erro = (NFSeSefinNacionalResponseErro) response.getValue();
-            throw new Exception("Não foi possível obter o xml da nota fiscal via chave de acesso '%s': [HTTP response code %s] - %s".formatted(nfseChaveAcesso, response.getKey(), erro.getErro().stream().map(e -> "%s - %s;".formatted(e.getCodigo(), e.getDescricao())).collect(Collectors.joining())));
+            final NFSeSefinNacionalResponseErro erro = (NFSeSefinNacionalResponseErro) response.getValue();
+            throw new Exception(String.format("Não foi possível obter o xml da nota fiscal via chave de acesso '%s': [HTTP response code %s] - %s", nfseChaveAcesso, response.getKey(), erro.getErro().stream().map(e -> String.format("%s - %s;", e.getCodigo(), e.getDescricao())).collect(Collectors.joining())));
         }
     }
 
@@ -126,17 +134,17 @@ public class WSSefinNFSe implements NFSeLogger {
             dps.getInfDPS().setTipoEmitente(NFSeSefinNacionalInfDPSTipoEmitente.PRESTADOR);
         }
         if (StringUtils.isBlank(dps.getInfDPS().getVersaoApp())) {
-            dps.getInfDPS().setVersaoApp("T3W %s".formatted(dps.getInfDPS().getTipoAmbiente().getDescricao()));
+            dps.getInfDPS().setVersaoApp(String.format("T3W %s", dps.getInfDPS().getTipoAmbiente().getDescricao()));
         }
         if (dps.getInfDPS().getDataInicioPrestacaoServico() == null) {
             dps.getInfDPS().setDataInicioPrestacaoServico(LocalDate.now());
         }
 
         //valida o ambiente
-        final var dpsHomologacao = NFSeSefinNacionalTipoAmbiente.HOMOLOGACAO.equals(dps.getInfDPS().getTipoAmbiente());
-        final var sistemaHomologacao = this.config.isTeste();
+        final boolean dpsHomologacao = NFSeSefinNacionalTipoAmbiente.HOMOLOGACAO.equals(dps.getInfDPS().getTipoAmbiente());
+        final boolean sistemaHomologacao = this.config.isTeste();
         if (dpsHomologacao != sistemaHomologacao) {
-            throw new IllegalStateException("O ambiente do DPS (%s) não corresponde ao ambiente do sistema (%s)!".formatted(dpsHomologacao ? "HOMOLOGAÇÃO" : "PRODUÇÃO", sistemaHomologacao ? "HOMOLOGAÇÃO" : "PRODUÇÃO"));
+            throw new IllegalStateException(String.format("O ambiente do DPS (%s) não corresponde ao ambiente do sistema (%s)!", dpsHomologacao ? "HOMOLOGAÇÃO" : "PRODUÇÃO", sistemaHomologacao ? "HOMOLOGAÇÃO" : "PRODUÇÃO"));
         }
 
         // Gera o id e seta no objeto para preenchimento no xml
@@ -144,45 +152,49 @@ public class WSSefinNFSe implements NFSeLogger {
 
 
         //cria os validatores
-        final var xmlValidator = new NFSeXmlValidator(new StreamSource(WSSefinNFSe.class.getClassLoader().getResource("NFSeNacional_nfse-esquemas_xsd-v1-01-20260209/Schemas/1.01/DPS_v1.01.xsd").toURI().toString()));
+        final NFSeXmlValidator xmlValidator = new NFSeXmlValidator(new StreamSource(WSSefinNFSe.class.getClassLoader().getResource("NFSeNacional_nfse-esquemas_xsd-v1-01-20260209/Schemas/1.01/DPS_v1.01.xsd").toURI().toString()));
 
         //gera o xml e valida
-        final var xmlNaoAssinado = dps.toXml();
+        final String xmlNaoAssinado = dps.toXml();
         getLogger().debug(xmlNaoAssinado);
-        final var xmlNaoAssinadoErros = xmlValidator.validateAndGetErrors(xmlNaoAssinado).getLeft();
-        assert xmlNaoAssinadoErros.isEmpty() : "XML não assinado do DPS não é válido: %s".formatted(String.join("; ", xmlNaoAssinadoErros));
+        final List<String> xmlNaoAssinadoErros = xmlValidator.validateAndGetErrors(xmlNaoAssinado).getLeft();
+        assert xmlNaoAssinadoErros.isEmpty() : String.format("XML não assinado do DPS não é válido: %s", String.join("; ", xmlNaoAssinadoErros));
 
         //assina o xml e revalida
-        final var xmlAssinado = new NFSeAssinaturaDigital(this.config)
+        final String xmlAssinado = new NFSeAssinaturaDigital(this.config)
             .setOmitirDeclaracaoXML(false)
             .setUsarIdComoReferencia(false)
             .assinarDocumento(xmlNaoAssinado);
         getLogger().debug(xmlAssinado);
-        final var xmlAssinadoErros = xmlValidator.validateAndGetErrors(xmlNaoAssinado).getLeft();
-        assert xmlAssinadoErros.isEmpty() : "XML assinado do DPS não é válido: %s".formatted(String.join("; ", xmlAssinadoErros));
+        final List<String> xmlAssinadoErros = xmlValidator.validateAndGetErrors(xmlNaoAssinado).getLeft();
+        assert xmlAssinadoErros.isEmpty() : String.format("XML assinado do DPS não é válido: %s", String.join("; ", xmlAssinadoErros));
 
         byte[] gzipped;
-        try (var baos = new ByteArrayOutputStream(); var gos = new java.util.zip.GZIPOutputStream(baos)) {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); GZIPOutputStream gos = new GZIPOutputStream(baos)) {
             gos.write(xmlAssinado.getBytes(StandardCharsets.UTF_8));
             gos.finish();
             gzipped = baos.toByteArray();
         }
 
-        final var uri = new URI(String.format("%s", config.isTeste() ? URL_HOMOLOGACAO_NFSE : URL_PRODUCAO_NFSE));
-        final var body = String.format("{dpsXmlGZipB64:\"%s\"}", Base64.getEncoder().encodeToString(gzipped));
-        final var response = new NFSeHttpClient(config).sendPostRequest(uri, body);
+        final URI uri = new URI(String.format("%s", config.isTeste() ? URL_HOMOLOGACAO_NFSE : URL_PRODUCAO_NFSE));
+        final String body = String.format("{dpsXmlGZipB64:\"%s\"}", Base64.getEncoder().encodeToString(gzipped));
+        final NFSeHttpResponse<String> response = new NFSeHttpClient(config).sendPostRequest(uri, body);
         this.getLogger().info("Response emissão by DPS {}: {}", response.statusCode(), response.body());
-        return switch (response.statusCode()) {
-            case HttpURLConnection.HTTP_CREATED -> new AbstractMap.SimpleEntry<>(HttpURLConnection.HTTP_CREATED, this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalNFSePostResponseSucesso.class));
-            case HttpURLConnection.HTTP_BAD_REQUEST, HttpURLConnection.HTTP_UNAUTHORIZED, HttpURLConnection.HTTP_FORBIDDEN, HttpURLConnection.HTTP_NOT_FOUND -> {
+        switch (response.statusCode()) {
+            case HttpURLConnection.HTTP_CREATED:
+                return new AbstractMap.SimpleEntry<>(HttpURLConnection.HTTP_CREATED, this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalNFSePostResponseSucesso.class));
+            case HttpURLConnection.HTTP_BAD_REQUEST:
+            case HttpURLConnection.HTTP_UNAUTHORIZED:
+            case HttpURLConnection.HTTP_FORBIDDEN:
+            case HttpURLConnection.HTTP_NOT_FOUND:
                 try {
-                    yield new AbstractMap.SimpleEntry<>(HttpURLConnection.HTTP_BAD_REQUEST, this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalNFSePostResponseErro.class));
+                    return new AbstractMap.SimpleEntry<>(HttpURLConnection.HTTP_BAD_REQUEST, this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalNFSePostResponseErro.class));
                 } catch (Exception e) {
-                    throw new ParserConfigurationException("Envio de DPS para emissão de NFSe retornou código '%d' com body não parseável: %s".formatted(response.statusCode(), response.body()));
+                    throw new ParserConfigurationException(String.format("Envio de DPS para emissão de NFSe retornou código '%d' com body não parseável: %s", response.statusCode(), response.body()));
                 }
-            }
-            default -> throw new IllegalStateException("Envio de DPS para emissão de NFSe retornou código de erro não previsto '%d': %s!".formatted(response.statusCode(), response.body()));
-        };
+            default:
+                throw new IllegalStateException(String.format("Envio de DPS para emissão de NFSe retornou código de erro não previsto '%d': %s!", response.statusCode(), response.body()));
+        }
     }
 
     /**
@@ -197,7 +209,7 @@ public class WSSefinNFSe implements NFSeLogger {
             pedidoRegistroEvento.getInfPedReg().setDhEvento(ZonedDateTime.of(LocalDateTime.now(), ZoneId.of("-03:00")));
         }
         if (StringUtils.isBlank(pedidoRegistroEvento.getInfPedReg().getVerAplic())) {
-            pedidoRegistroEvento.getInfPedReg().setVerAplic("T3W %s".formatted(pedidoRegistroEvento.getInfPedReg().getTpAmb().getDescricao()));
+            pedidoRegistroEvento.getInfPedReg().setVerAplic(String.format("T3W %s", pedidoRegistroEvento.getInfPedReg().getTpAmb().getDescricao()));
         }
         if (StringUtils.isBlank(pedidoRegistroEvento.getInfPedReg().getNPedRegEvento())) {
 //            pedidoRegistroEvento.getInfPedReg().setNPedRegEvento("1");
@@ -209,29 +221,32 @@ public class WSSefinNFSe implements NFSeLogger {
         }
 
         //valida o ambiente
-        final var solicitacaoHomologacao = NFSeSefinNacionalTipoAmbiente.HOMOLOGACAO.equals(pedidoRegistroEvento.getInfPedReg().getTpAmb());
-        final var sistemaHomologacao = this.config.isTeste();
+        final boolean solicitacaoHomologacao = NFSeSefinNacionalTipoAmbiente.HOMOLOGACAO.equals(pedidoRegistroEvento.getInfPedReg().getTpAmb());
+        final boolean sistemaHomologacao = this.config.isTeste();
         if (solicitacaoHomologacao != sistemaHomologacao) {
-            throw new IllegalStateException("O ambiente do evento (%s) não corresponde ao ambiente do sistema (%s)!".formatted(solicitacaoHomologacao ? "HOMOLOGAÇÃO" : "PRODUÇÃO", sistemaHomologacao ? "HOMOLOGAÇÃO" : "PRODUÇÃO"));
+            throw new IllegalStateException(String.format("O ambiente do evento (%s) não corresponde ao ambiente do sistema (%s)!", solicitacaoHomologacao ? "HOMOLOGAÇÃO" : "PRODUÇÃO", sistemaHomologacao ? "HOMOLOGAÇÃO" : "PRODUÇÃO"));
         }
 
         // Gera o id e seta no objeto para preenchimento no xml
         pedidoRegistroEvento.getInfPedReg().setId(NFSeUtils.gerarEventoId(pedidoRegistroEvento));
 
         final String body;
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); java.util.zip.GZIPOutputStream gos = new java.util.zip.GZIPOutputStream(baos)) {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); GZIPOutputStream gos = new GZIPOutputStream(baos)) {
             gos.write(new NFSeAssinaturaDigital(this.config).setOmitirDeclaracaoXML(false).setUsarIdComoReferencia(false).assinarDocumento(pedidoRegistroEvento.toXml(), "infPedReg").getBytes(StandardCharsets.UTF_8));
             gos.finish();
             body = String.format("{pedidoRegistroEventoXmlGZipB64:\"%s\"}", Base64.getEncoder().encodeToString(baos.toByteArray()));
         }
 
-        final var uri = new URI(String.format("%s/%s/eventos", config.isTeste() ? URL_HOMOLOGACAO_NFSE : URL_PRODUCAO_NFSE, pedidoRegistroEvento.getInfPedReg().getChaveAcessoNFSE()));
-        final var response = new NFSeHttpClient(config).sendPostRequest(uri, body);
-        return switch (response.statusCode()) {
-            case HttpURLConnection.HTTP_CREATED -> new AbstractMap.SimpleEntry<>(HttpURLConnection.HTTP_CREATED, this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalEventosPostResponseSucesso.class));
-            case HttpURLConnection.HTTP_BAD_REQUEST -> new AbstractMap.SimpleEntry<>(HttpURLConnection.HTTP_BAD_REQUEST, this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalResponseErro.class));
-            default -> throw new IllegalStateException("Erro ao enviar DPS: %s".formatted(this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalResponseErro.class).getErro()));
-        };
+        final URI uri = new URI(String.format("%s/%s/eventos", config.isTeste() ? URL_HOMOLOGACAO_NFSE : URL_PRODUCAO_NFSE, pedidoRegistroEvento.getInfPedReg().getChaveAcessoNFSE()));
+        final NFSeHttpResponse<String> response = new NFSeHttpClient(config).sendPostRequest(uri, body);
+        switch (response.statusCode()) {
+            case HttpURLConnection.HTTP_CREATED:
+                return new AbstractMap.SimpleEntry<>(HttpURLConnection.HTTP_CREATED, this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalEventosPostResponseSucesso.class));
+            case HttpURLConnection.HTTP_BAD_REQUEST:
+                return new AbstractMap.SimpleEntry<>(HttpURLConnection.HTTP_BAD_REQUEST, this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalResponseErro.class));
+            default:
+                throw new IllegalStateException(String.format("Erro ao enviar DPS: %s", this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalResponseErro.class).getErro()));
+        }
     }
 
     /**
@@ -244,12 +259,15 @@ public class WSSefinNFSe implements NFSeLogger {
      * @throws Exception Caso erro.
      */
     public Map.Entry<Integer, Object> solicitarEventos(final String chave, final String codigoEvento, final Integer seq) throws Exception {
-        final var uri = new URI(String.format("%s/%s/eventos/%s/%s", config.isTeste() ? URL_HOMOLOGACAO_NFSE : URL_PRODUCAO_NFSE, chave, ObjectUtils.firstNonNull(codigoEvento, "="), ObjectUtils.firstNonNull(seq, "=")));
-        final var response = new NFSeHttpClient(config).sendGetRequest(uri);
-        return switch (response.statusCode()) {
-            case HttpURLConnection.HTTP_OK -> new AbstractMap.SimpleEntry<>(HttpURLConnection.HTTP_OK, this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalEventosPostResponseSucesso.class));
-            case HttpURLConnection.HTTP_BAD_REQUEST -> new AbstractMap.SimpleEntry<>(HttpURLConnection.HTTP_BAD_REQUEST, this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalResponseErro.class));
-            default -> throw new IllegalStateException("Erro ao enviar DPS: %s".formatted(this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalResponseErro.class).getErro()));
-        };
+        final URI uri = new URI(String.format("%s/%s/eventos/%s/%s", config.isTeste() ? URL_HOMOLOGACAO_NFSE : URL_PRODUCAO_NFSE, chave, ObjectUtils.firstNonNull(codigoEvento, "="), ObjectUtils.firstNonNull(seq, "=")));
+        final NFSeHttpResponse<String> response = new NFSeHttpClient(config).sendGetRequest(uri);
+        switch (response.statusCode()) {
+            case HttpURLConnection.HTTP_OK:
+                return new AbstractMap.SimpleEntry<>(HttpURLConnection.HTTP_OK, this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalEventosPostResponseSucesso.class));
+            case HttpURLConnection.HTTP_BAD_REQUEST:
+                return new AbstractMap.SimpleEntry<>(HttpURLConnection.HTTP_BAD_REQUEST, this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalResponseErro.class));
+            default:
+                throw new IllegalStateException(String.format("Erro ao enviar DPS: %s", this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalResponseErro.class).getErro()));
+        }
     }
 }

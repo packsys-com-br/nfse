@@ -52,7 +52,7 @@ public class NFSeBarueriRPSArquivoRetornoRegistroTipo9 extends NFSeBarueriRPSArq
 
     @Override
     public String toLinha() {
-        return "%s%s%s%s".formatted(
+        return String.format("%s%s%s%s",
                 TIPO_REGISTRO,
                 String.format("%07d", numeroTotalLinhasArquivo),
                 String.format("%015d", valorTotalServicosArquivo.movePointRight(2).longValue()),

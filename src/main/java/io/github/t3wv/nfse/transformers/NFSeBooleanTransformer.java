@@ -3,11 +3,13 @@ package io.github.t3wv.nfse.transformers;
 import org.apache.commons.lang3.StringUtils;
 import org.simpleframework.xml.transform.Transform;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class NFSeBooleanTransformer implements Transform<Boolean> {
-    private static final List<String> TRUE_VALUES = List.of("1", "true", "yes", "s","sim", "verdadeiro");
-    private static final List<String> FALSE_VALUES = List.of("0", "false", "no", "n","nao", "não", "falso");
+    private static final List<String> TRUE_VALUES = Collections.unmodifiableList(Arrays.asList("1", "true", "yes", "s","sim", "verdadeiro"));
+    private static final List<String> FALSE_VALUES = Collections.unmodifiableList(Arrays.asList("0", "false", "no", "n","nao", "não", "falso"));
 
     @Override
     public Boolean read(String value) {

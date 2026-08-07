@@ -7,7 +7,9 @@ import org.apache.commons.lang3.math.NumberUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Classe abstrata que representa um registro de arquivo de envio de RPS para o município de Barueri - SP.
@@ -43,7 +45,7 @@ public abstract class NFSeBarueriRPSArquivoEnvioRegistro<T> {
     }
 
     static String trataString(String valor, int tamanho) {
-        final var stringTrim = StringUtils.trimToEmpty(valor);
+        final String stringTrim = StringUtils.trimToEmpty(valor);
         if (stringTrim.isEmpty()) {
             return StringUtils.rightPad("", tamanho);
         }
@@ -66,7 +68,7 @@ public abstract class NFSeBarueriRPSArquivoEnvioRegistro<T> {
     }
 
     static String trataNumerico(String valor, int tamanho) {
-        final var stringTrim = StringUtils.trimToEmpty(valor);
+        final String stringTrim = StringUtils.trimToEmpty(valor);
         if (stringTrim.isEmpty() || !NumberUtils.isDigits(valor)) {
             return StringUtils.repeat("0", tamanho);
         }
@@ -78,9 +80,9 @@ public abstract class NFSeBarueriRPSArquivoEnvioRegistro<T> {
 
     public static List<NFSeBarueriRetornoErros> parseErros(final String linha) {
         if (linha.length() > ULTIMO_CARACTERE_VALIDO_LINHA_ANTES_ERROS) {
-            return Arrays.stream(linha.substring(ULTIMO_CARACTERE_VALIDO_LINHA_ANTES_ERROS).split(";")).map(NFSeBarueriRetornoErros::valueOfCodigo).toList();
+            return Arrays.stream(linha.substring(ULTIMO_CARACTERE_VALIDO_LINHA_ANTES_ERROS).split(";")).map(NFSeBarueriRetornoErros::valueOfCodigo).collect(Collectors.toList());
         }
-        return List.of();
+        return Collections.emptyList();
     }
 
     @Override
