@@ -1,0 +1,91 @@
+Guia Rápido: Verificando e Sincronizando seu Fork da T3W NFS-e
+==================================================================
+
+Este documento explica como usar o script `aplicar_patches_git_nfse.sh` para gerenciar a sincronização do seu fork privado (`nfse-t3wv-fork`) com o repositório original (`t3wv/nfse`). Ele espelha o fluxo já usado no `aplicar_patches_git_nfe.sh` (fork do NF-e), com uma diferença importante explicada abaixo.
+
+**Diferença importante em relação ao script do NF-e**
+No fork do NF-e, o "patch local" reaplicado após cada merge é uma troca simples de duas linhas no `pom.xml` (`java.version` e `xmlsec`), porque a biblioteca da Fincatto já nasceu compatível com Java 8.
+
+Neste fork, a biblioteca original (`t3wv/nfse`) é escrita para **Java 21**. A adaptação para Java 8 feita neste fork (commit "Downgrade compatibilidade para Java 8") reescreveu ~66 arquivos-fonte (removendo `var`, `java.net.http`, `switch` expressions, `.formatted()`, etc.) — isso **não é reaplicável via `sed`**. Por isso, sempre que o script mesclar uma nova versão do upstream, ele:
+1. Reaplica apenas o patch simples de `pom.xml` (`java.version` + `<release>8</release>`);
+2. Roda `mvn compile` automaticamente para detectar se os arquivos novos/alterados do upstream trouxeram sintaxe do Java 9+;
+3. Se a compilação falhar, o script **para** (não oferece push, instalação ou atualização do projeto consumidor) e lista os erros — a correção do código em si precisa ser manual (ou pedindo ajuda ao Claude Code, que já fez esse tipo de adaptação neste projeto).
+
+**O que este script faz?**
+O script `aplicar_patches_git_nfse.sh` realiza as seguintes verificações:
+1.  **Configura o 'upstream' (repositório original):** Adiciona `t3wv/nfse.git` como um remote chamado `upstream` (se ainda não existir).
+2.  **Busca atualizações:** Baixa as informações mais recentes do seu fork (`origin`) e do repositório original (`upstream`).
+3.  **Compara seu fork no GitHub com o original:** Verifica se a sua branch de trabalho remota *atual* (detectada automaticamente) está atrasada em relação à `main` do repositório original do T3W. Isso indica se você precisa usar o botão 'Sync fork' no GitHub.
+4.  **Compara sua branch local com seu fork no GitHub:** Verifica se sua branch de trabalho local *atual* está sincronizada com a versão remota dela no seu próprio fork.
+5.  **Verifica configuração Java no pom.xml:** Confirma se `java.version` está em `1.8` e se o `maven-compiler-plugin` está usando `<release>8</release>`.
+
+**Como usar?**
+1.  **Abra o terminal** e navegue até o diretório raiz do seu projeto `nfse-t3wv-fork`:
+    ```bash
+    cd ~/Dev/Projects/NetBeansProjects/nfse-t3wv-fork
+    ```
+
+2.  **Torne o script executável** (se ainda não for):
+    ```bash
+    chmod +x aplicar_patches_git_nfse.sh
+    ```
+
+3.  **Execute o script:**
+    ```bash
+    ./aplicar_patches_git_nfse.sh
+    ```
+    *Observação: Na primeira vez, o script irá configurar o repositório original (chamado de 'upstream') para você. Isso é normal.*
+
+**Interpretando os Resultados e Ações Recomendadas:**
+
+*   **--- Status do seu Fork no GitHub (origin/SUA_BRANCH_ATUAL) vs. T3W Original (upstream/main) ---**
+    *   **⚠️ Seu fork no GitHub está ATRÁS...**
+        *   **Significado:** O repositório original do T3W (`t3wv/nfse:main`) tem novas atualizações que seu fork no GitHub ainda não possui.
+        *   **Ação:** Vá para a página do seu fork no GitHub e clique no botão **'Sync fork'** para incorporar essas alterações. (Você não deve fazer `git pull upstream main` diretamente na sua máquina local com este fluxo).
+
+    *   **🎉 Seu fork no GitHub está sincronizado...**
+        *   **Significado:** Seu fork no GitHub já possui todas as atualizações do repositório original.
+        *   **Ação:** Nenhuma ação necessária nesta etapa.
+
+*   **--- Status da sua Branch Local (SUA_BRANCH_ATUAL) vs. seu Fork no GitHub (origin/SUA_BRANCH_ATUAL) ---**
+    *   **⚠️ Sua branch local está ATRÁS...**
+        *   **Significado:** A sua branch de trabalho local (detectada automaticamente) não tem as últimas alterações que estão no seu próprio fork no GitHub (que você pode ter puxado via GitHub Desktop ou após um 'Sync fork').
+        *   **Ação:** Para atualizar sua branch local, execute:
+            ```bash
+            git pull origin SUA_BRANCH_ATUAL
+            # Ou use a função 'Fetch Origin' do GitHub Desktop.
+            ```
+
+    *   **⬆️ Sua branch local tem X commit(s) que não foram enviados...**
+        *   **Significado:** Você fez commits localmente que ainda não foram enviados para o seu fork no GitHub.
+        *   **Ação:** Para enviar suas alterações, execute:
+            ```bash
+            git push origin SUA_BRANCH_ATUAL
+            # Ou use a função 'Push Origin' do GitHub Desktop.
+            ```
+
+    *   **🎉 Sua branch local está sincronizada...**
+        *   **Significado:** Sua branch local está totalmente em dia com a sua branch remota no GitHub.
+        *   **Ação:** Nenhuma ação necessária nesta etapa.
+
+*   **Verificação de configuração Java no pom.xml:**
+    *   Este trecho informará se `java.version` está em `1.8` e se o compiler-plugin está configurado com `<release>8</release>` (nosso patch para rodar em Java 8).
+
+**Quando existe uma versão nova do t3wv/nfse:**
+1.  O script pergunta se você quer criar a branch `nfse_XXXX` (ex: `1.0.45` → `nfse_1045`) a partir da sua branch atual e mesclar a tag da nova versão.
+2.  Se houver conflito em arquivos de teste removidos ou no `pom.xml`, o script tenta resolver automaticamente (mantendo os arquivos removidos e reaplicando `java.version`/`<release>8</release>`).
+3.  Em seguida, o script **compila o projeto com `mvn compile`**. Só continua para os próximos passos se a compilação passar:
+    *   Se **falhar**: corrija o código apontado nos erros (as mesmas categorias do commit "Downgrade compatibilidade para Java 8" — `var`, `.formatted()`, `java.net.http`, `switch` expressions, `List.of`/`Map.of`, `.getFirst()`/`.isBlank()`/`.toList()`/`.repeat()`, etc.), rode `mvn -Dmaven.test.skip=true compile` de novo para confirmar, e então finalize manualmente o commit do merge antes de rodar o script de novo.
+    *   Se **passar**: o script oferece instalar a lib localmente (`mvn install`), enviar a branch para o seu fork (push) e preparar o projeto consumidor (`ipack-git`): cria a mesma branch `nfse_XXXX` nele e atualiza `<nfse.version>` no `pom.xml`.
+
+**Fluxo de Trabalho Recomendado:**
+1.  Sempre que quiser atualizar, comece executando: `./aplicar_patches_git_nfse.sh`
+2.  Se o script indicar que seu **fork no GitHub está ATRÁS do original**, vá ao GitHub e use o botão **'Sync fork'**.
+3.  Em seguida, execute novamente `./aplicar_patches_git_nfse.sh` e, se sua **branch local estiver ATRÁS do seu fork no GitHub**, faça um `git pull origin SUA_BRANCH_ATUAL` (ou use o GitHub Desktop).
+4.  Se o script mesclar uma versão nova e a compilação falhar, corrija as incompatibilidades Java 8 antes de seguir — não force a instalação/publicação com erros de compilação pendentes.
+5.  Após qualquer atualização ou alteração no `nfse-t3wv-fork`, **sempre compile e instale a biblioteca localmente** para que o `ipack-git` use a versão correta:
+    ```bash
+    mvn -Dmaven.test.skip=true clean install
+    ```
+
+Este fluxo garante que você mantenha o controle sobre as atualizações e a compatibilidade do Java, mesmo sabendo que — diferente do fork do NF-e — a compatibilidade Java 8 aqui exige revisão de código a cada atualização, não apenas um ajuste de versão no pom.xml.
