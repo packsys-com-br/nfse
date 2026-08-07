@@ -8,7 +8,7 @@ class NFSeBarueriRPSArquivoRetornoRegistroTipo4Test {
 
     @Test
     void testFromLinhaAndToLinha() {
-        final var linha = "4VN000000000001025";
+        final String linha = "4VN000000000001025";
         assertEquals(linha, new NFSeBarueriRPSArquivoRetornoRegistroTipo4().fromLinha(linha).toLinha());
     }
 }

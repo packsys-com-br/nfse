@@ -3,9 +3,12 @@ package io.github.t3wv.nfse.municipal;
 import io.github.t3wv.nfse.NFSeLogger;
 import io.github.t3wv.nfse.municipal.nfseSCSaoJose.WSSaoJose;
 import io.github.t3wv.nfse.municipal.nfseSCSaoJose.arquivos.NFSeSCSaoJoseCancelamentoEnvio;
+import io.github.t3wv.nfse.municipal.nfseSCSaoJose.arquivos.NFSeSCSaoJoseCancelamentoRetorno;
 import io.github.t3wv.nfse.municipal.nfseSCSaoJose.arquivos.NFSeSCSaoJoseCancelamentoSolicitacaoEnvio;
-import io.github.t3wv.nfse.municipal.nfseSCSaoJose.arquivos.NFSeSCSaoJoseEmissaoEnvio;
+import io.github.t3wv.nfse.municipal.nfseSCSaoJose.arquivos.NFSeSCSaoJoseEmissaoRetorno;
 import io.github.t3wv.nfse.municipal.nfseSCSaoJose.arquivos.NFSeSCSaoJosePesquisaCodigoAutenticidadeEnvio;
+import io.github.t3wv.nfse.municipal.nfseSCSaoJose.arquivos.NFSeSCSaoJosePesquisaCodigoAutenticidadeRetorno;
+import io.github.t3wv.nfse.municipal.nfseSCSaoJose.arquivos.NFSeSCSaoJoseEmissaoEnvio;
 import io.github.t3wv.nfse.municipal.nfseSCSaoJose.classes.*;
 import io.github.t3wv.nfse.municipal.nfseSCSaoJose.enums.NFSeSCSaoJosePessoaTipo;
 import io.github.t3wv.nfse.municipal.nfseSCSaoJose.enums.NFSeSCSaoJoseSituacaoTributaria;
@@ -16,6 +19,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -33,7 +37,7 @@ class NFSeSCSaoJoseTest implements NFSeLogger {
     @Disabled
     @Test
     void testeEmissaoSJ() throws Exception {
-        final var arquivo = new NFSeSCSaoJoseEmissaoEnvio()
+        final NFSeSCSaoJoseEmissaoEnvio arquivo = new NFSeSCSaoJoseEmissaoEnvio()
             .setTeste(true)
             .setNf(
                 new NFSeSCSaoJoseNF()
@@ -81,25 +85,25 @@ class NFSeSCSaoJoseTest implements NFSeLogger {
             );
 
 
-        final var retorno = ws.enviarEmissaoNFSe(arquivo, "arquivo.xptossssa33");
+        final NFSeSCSaoJoseEmissaoRetorno retorno = ws.enviarEmissaoNFSe(arquivo, "arquivo.xptossssa33");
         this.getLogger().info("NFSe emitida com sucesso: {}", retorno.toXml());
     }
 
     @Disabled
     @Test
     void testePesquisaCodigoAutenticidade() throws Exception {
-        final var pesquisa = new NFSeSCSaoJosePesquisaCodigoAutenticidadeEnvio().setCodigoAutenticidade("");
-        final var retorno = ws.consultaNFSeCodigoAutenticidade(pesquisa, "pesquisa.xml");
+        final NFSeSCSaoJosePesquisaCodigoAutenticidadeEnvio pesquisa = new NFSeSCSaoJosePesquisaCodigoAutenticidadeEnvio().setCodigoAutenticidade("");
+        final NFSeSCSaoJosePesquisaCodigoAutenticidadeRetorno retorno = ws.consultaNFSeCodigoAutenticidade(pesquisa, "pesquisa.xml");
         this.getLogger().info(retorno.toXml());
     }
 
     @Disabled
     @Test
     void testeCancelamento() throws Exception {
-        final var prestador = new NFSeSCSaoJoseNFSePrestador().setCidade("8327").setCpfCnpj("52398509000138");
-        final var nf = new NFSeSCSaoJoseNFSeCancelamento().setNumero("1068").setSerieNFSe("1").setSituacao("C").setObservacao("Cancelamento teste");
-        final var cancelamento = new NFSeSCSaoJoseCancelamentoEnvio().setNf(nf).setPrestador(prestador);
-        final var retorno = ws.enviarCancelamentoNFSe(cancelamento, "cancelamento.xml");
+        final NFSeSCSaoJoseNFSePrestador prestador = new NFSeSCSaoJoseNFSePrestador().setCidade("8327").setCpfCnpj("52398509000138");
+        final NFSeSCSaoJoseNFSeCancelamento nf = new NFSeSCSaoJoseNFSeCancelamento().setNumero("1068").setSerieNFSe("1").setSituacao("C").setObservacao("Cancelamento teste");
+        final NFSeSCSaoJoseCancelamentoEnvio cancelamento = new NFSeSCSaoJoseCancelamentoEnvio().setNf(nf).setPrestador(prestador);
+        final NFSeSCSaoJoseCancelamentoRetorno retorno = ws.enviarCancelamentoNFSe(cancelamento, "cancelamento.xml");
         this.getLogger().info(retorno.toXml());
     }
 
@@ -107,10 +111,10 @@ class NFSeSCSaoJoseTest implements NFSeLogger {
     @Test
     void testeArquivoCancelamentoXMLExemplo() throws Exception {
         // XML exemplo retirado do site da IPM Fiscal https://www.nfs-e.net/fiscalweb.php
-        final var exemploCancelamento = "<nfse><nf><numero>20190013</numero><situacao>C</situacao><observacao>Cancelando uma NFS-e</observacao></nf><prestador><cpfcnpj>11252365444435</cpfcnpj><cidade>8291</cidade></prestador></nfse>";
-        final var prestador = new NFSeSCSaoJoseNFSePrestador().setCidade("8291").setCpfCnpj("11252365444435");
-        final var nf = new NFSeSCSaoJoseNFSeCancelamento().setNumero("20190013").setSituacao("C").setObservacao("Cancelando uma NFS-e");
-        final var cancelamento = new NFSeSCSaoJoseCancelamentoEnvio().setNf(nf).setPrestador(prestador);
+        final String exemploCancelamento = "<nfse><nf><numero>20190013</numero><situacao>C</situacao><observacao>Cancelando uma NFS-e</observacao></nf><prestador><cpfcnpj>11252365444435</cpfcnpj><cidade>8291</cidade></prestador></nfse>";
+        final NFSeSCSaoJoseNFSePrestador prestador = new NFSeSCSaoJoseNFSePrestador().setCidade("8291").setCpfCnpj("11252365444435");
+        final NFSeSCSaoJoseNFSeCancelamento nf = new NFSeSCSaoJoseNFSeCancelamento().setNumero("20190013").setSituacao("C").setObservacao("Cancelando uma NFS-e");
+        final NFSeSCSaoJoseCancelamentoEnvio cancelamento = new NFSeSCSaoJoseCancelamentoEnvio().setNf(nf).setPrestador(prestador);
         Assertions.assertEquals(exemploCancelamento, cancelamento.toXml());
     }
 
@@ -118,15 +122,15 @@ class NFSeSCSaoJoseTest implements NFSeLogger {
     @Test
     void testeArquivoCancelamentoSolicitacaoXMLExemplo() throws Exception {
         // XML exemplo retirado do site da IPM Fiscal https://www.nfs-e.net/fiscalweb.php
-        final var exemploCancelamento = "<solicitacao_cancelamento><prestador><cpfcnpj>88888888853089</cpfcnpj><cidade>7493</cidade></prestador><documentos><nfse><numero>9</numero><serie>1</serie><observacao>Documento em Duplicidade com a nota 8</observacao><substituta><numero>8</numero><serie>1</serie></substituta></nfse><nfse><numero>11</numero><serie>1</serie><observacao>Documento em Duplicidade com a nota 10</observacao><substituta><numero>10</numero><serie>1</serie></substituta></nfse></documentos></solicitacao_cancelamento>";
-        final var prestador = new NFSeSCSaoJoseNFSePrestador().setCidade("7493").setCpfCnpj("88888888853089");
-        final var documentoUm = new NFSeSCSaoJoseNFSeCancelamentoSolicitacao().setNumero(9).setSerie(1).setObservacao("Documento em Duplicidade com a nota 8").setSubstituta(new NFSeSCSaoJoseNFSeCancelamentoSolicitacaoSubstituta().setNumero(8).setSerie(1));
-        final var documentoDois = new NFSeSCSaoJoseNFSeCancelamentoSolicitacao().setNumero(11).setSerie(1).setObservacao("Documento em Duplicidade com a nota 10").setSubstituta(new NFSeSCSaoJoseNFSeCancelamentoSolicitacaoSubstituta().setNumero(10).setSerie(1));
-        Assertions.assertEquals(exemploCancelamento, new NFSeSCSaoJoseCancelamentoSolicitacaoEnvio().setPrestador(prestador).setDocumentos(List.of(documentoUm, documentoDois)).toXml());
+        final String exemploCancelamento = "<solicitacao_cancelamento><prestador><cpfcnpj>88888888853089</cpfcnpj><cidade>7493</cidade></prestador><documentos><nfse><numero>9</numero><serie>1</serie><observacao>Documento em Duplicidade com a nota 8</observacao><substituta><numero>8</numero><serie>1</serie></substituta></nfse><nfse><numero>11</numero><serie>1</serie><observacao>Documento em Duplicidade com a nota 10</observacao><substituta><numero>10</numero><serie>1</serie></substituta></nfse></documentos></solicitacao_cancelamento>";
+        final NFSeSCSaoJoseNFSePrestador prestador = new NFSeSCSaoJoseNFSePrestador().setCidade("7493").setCpfCnpj("88888888853089");
+        final NFSeSCSaoJoseNFSeCancelamentoSolicitacao documentoUm = new NFSeSCSaoJoseNFSeCancelamentoSolicitacao().setNumero(9).setSerie(1).setObservacao("Documento em Duplicidade com a nota 8").setSubstituta(new NFSeSCSaoJoseNFSeCancelamentoSolicitacaoSubstituta().setNumero(8).setSerie(1));
+        final NFSeSCSaoJoseNFSeCancelamentoSolicitacao documentoDois = new NFSeSCSaoJoseNFSeCancelamentoSolicitacao().setNumero(11).setSerie(1).setObservacao("Documento em Duplicidade com a nota 10").setSubstituta(new NFSeSCSaoJoseNFSeCancelamentoSolicitacaoSubstituta().setNumero(10).setSerie(1));
+        Assertions.assertEquals(exemploCancelamento, new NFSeSCSaoJoseCancelamentoSolicitacaoEnvio().setPrestador(prestador).setDocumentos(Arrays.asList(documentoUm, documentoDois)).toXml());
     }
 
     NFSeSCSaoJoseEmissaoEnvio testeConverteNacionalParaLocal(NFSeSefinNacionalInfDPS nfseSefinNacionalInfDPS) throws Exception {
-        final var nfseSCSaoJose = new NFSeSCSaoJoseEmissaoEnvio();
+        final NFSeSCSaoJoseEmissaoEnvio nfseSCSaoJose = new NFSeSCSaoJoseEmissaoEnvio();
         nfseSCSaoJose
             .setTeste(true)
             .setNf(
@@ -143,7 +147,7 @@ class NFSeSCSaoJoseTest implements NFSeLogger {
                     .setNomeRazaoSocial(nfseSefinNacionalInfDPS.getTomador().getNome())
                     .setEmail(nfseSefinNacionalInfDPS.getTomador().getEmail()))
             .setItens(
-                List.of(
+                Arrays.asList(
                     new NFSeSCSaoJoseNFSeListaItem()
                         .setCodigoLocalPrestacaoServico(nfseSefinNacionalInfDPS.getServicoPrestado().getLocalPrestacao().getCodigoMunicipio())
                         .setCodigoItemListaServico(nfseSefinNacionalInfDPS.getServicoPrestado().getCServ().getCodigoNacionalTributacaoISSQN())

@@ -8,7 +8,7 @@ class NFSeBarueriRPSArquivoEnvioRegistroTipo4Test {
 
     @Test
     void testFromLinhaAndToLinha() {
-        final var linha = "41    35294013529401                                        000000000                                                                                                                                                                                                                                                                                                                                                                                                                                                             00000000000000000";
+        final String linha = "41    35294013529401                                        000000000                                                                                                                                                                                                                                                                                                                                                                                                                                                             00000000000000000";
         assertEquals(linha, new NFSeBarueriRPSArquivoEnvioRegistroTipo4().fromLinha(linha).toLinha());
     }
 }

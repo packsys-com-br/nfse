@@ -29,7 +29,7 @@ public class NFSeSPSaoPauloTest implements NFSeLogger {
     @Disabled
     @Test
     public void testeEmissaoSchemasV1() throws Exception {
-        final var pedidoEnvioRPS = new NFSeSPSaoPauloRequestEnvioRPSLote();
+        final NFSeSPSaoPauloRequestEnvioRPSLote pedidoEnvioRPS = new NFSeSPSaoPauloRequestEnvioRPSLote();
         pedidoEnvioRPS.setCabecalho(new NFSeSPSaoPauloRequestEnvioRPSCabecalho()
             .setVersao("1")
             .setCPFCNPJRemetente(new TpCPFCNPJ().setCNPJ(""))
@@ -39,7 +39,7 @@ public class NFSeSPSaoPauloTest implements NFSeLogger {
             .setValorTotalServicos(BigDecimal.valueOf(0.01))
             .setQtdRPS(1));
 
-        final var rps = new TpRPS();
+        final TpRPS rps = new TpRPS();
         rps.setChaveRPS(new TpChaveRPS().setInscricaoPrestador("").setNumeroRPS(""))
             .setTipoRPS(TpTipoRPS.RPS)
             .setDataEmissao(LocalDate.now())
@@ -60,14 +60,14 @@ public class NFSeSPSaoPauloTest implements NFSeLogger {
         pedidoEnvioRPS.addRps(rps);
 
         // Gero e assino a assinatura digital de cada rps
-        final var response = new WSFacade(config).enviarTesteLoteRPS(NFSeSPSaoPauloUtils.assinarRPSs(config, pedidoEnvioRPS));
+        final NFSeSPSaoPauloRetornoEnvioLoteRPS response = new WSFacade(config).enviarTesteLoteRPS(NFSeSPSaoPauloUtils.assinarRPSs(config, pedidoEnvioRPS));
         System.out.println(response.toXml());
     }
 
     @Disabled
     @Test
     public void testeEmissaoSchemasV2() throws Exception {
-        final var pedidoEnvioRPS = new NFSeSPSaoPauloRequestEnvioRPSLote();
+        final NFSeSPSaoPauloRequestEnvioRPSLote pedidoEnvioRPS = new NFSeSPSaoPauloRequestEnvioRPSLote();
         pedidoEnvioRPS.setCabecalho(new NFSeSPSaoPauloRequestEnvioRPSCabecalho()
             .setVersao("2")
             .setCPFCNPJRemetente(new TpCPFCNPJ().setCNPJ(""))
@@ -76,7 +76,7 @@ public class NFSeSPSaoPauloTest implements NFSeLogger {
             .setDtFim(LocalDate.now())
             .setQtdRPS(1));
 
-        final var rps = new TpRPS()
+        final TpRPS rps = new TpRPS()
             .setChaveRPS(new TpChaveRPS().setInscricaoPrestador("").setNumeroRPS(""))
             .setTipoRPS(TpTipoRPS.RPS)
             .setDataEmissao(LocalDate.now())
@@ -118,19 +118,19 @@ public class NFSeSPSaoPauloTest implements NFSeLogger {
                     )
             );
         pedidoEnvioRPS.addRps(rps);
-        final var response = new WSFacade(config).enviarTesteLoteRPS(pedidoEnvioRPS);
+        final NFSeSPSaoPauloRetornoEnvioLoteRPS response = new WSFacade(config).enviarTesteLoteRPS(pedidoEnvioRPS);
         System.out.println(response.toXml());
     }
 
     @Disabled
     @Test
     public void envioSimplesRPSCUIDADO() throws Exception {
-        final var pedidoEnvioRPS = new NFSeSPSaoPauloRequestEnvioRPSUnico();
+        final NFSeSPSaoPauloRequestEnvioRPSUnico pedidoEnvioRPS = new NFSeSPSaoPauloRequestEnvioRPSUnico();
         pedidoEnvioRPS.setCabecalho(new NFSeSPSaoPauloRequestEnvioRPSCabecalho()
             .setVersao("1")
             .setCPFCNPJRemetente(new TpCPFCNPJ().setCNPJ("")));
 
-        final var rps = new TpRPS()
+        final TpRPS rps = new TpRPS()
             .setChaveRPS(new TpChaveRPS().setInscricaoPrestador("").setNumeroRPS(""))
             .setTipoRPS(TpTipoRPS.RPS)
             .setDataEmissao(LocalDate.now())
@@ -157,23 +157,23 @@ public class NFSeSPSaoPauloTest implements NFSeLogger {
     @Disabled
     @Test
     public void testeConsultaNFe() throws Exception {
-        final var pedidoConsultaNFe = new NFSeSPSaoPauloRequestConsultaNFe();
+        final NFSeSPSaoPauloRequestConsultaNFe pedidoConsultaNFe = new NFSeSPSaoPauloRequestConsultaNFe();
         pedidoConsultaNFe.setCabecalho(new NFSeSPSaoPauloRequestConsultaNFeCabecalho().setCpfCnpjRemetente(new TpCPFCNPJ().setCNPJ("")).setVersao("2"));
         pedidoConsultaNFe.addDetalhe(new NFSeSPSaoPauloRequestConsultaNFeDetalhe().setChaveNFe(new TpChaveNFe().setNumeroNFe("").setInscricaoPrestador("")));
-        final var response = new WSFacade(config).enviarPedidoConsultaNFe(pedidoConsultaNFe);
+        final NFSeSPSaoPauloRetornoConsultaNFe response = new WSFacade(config).enviarPedidoConsultaNFe(pedidoConsultaNFe);
         System.out.println(response.toXml());
     }
 
     @Disabled
     @Test
     public void testeCancelamentoNFe() throws Exception {
-        final var pedidoCancelamentoNFe = new NFSeSPSaoPauloRequestCancelamentoNFe();
+        final NFSeSPSaoPauloRequestCancelamentoNFe pedidoCancelamentoNFe = new NFSeSPSaoPauloRequestCancelamentoNFe();
         pedidoCancelamentoNFe.setCabecalho(new NFSeSPSaoPauloRequestCancelamentoNFeCabecalho().setCpfCnpjRemetente(new TpCPFCNPJ().setCNPJ("")).setTransacao(false).setVersao("1"));
 
         NFSeSPSaoPauloRequestCancelamentoNFeDetalhe detalheItem = new NFSeSPSaoPauloRequestCancelamentoNFeDetalhe().setChaveNFe(new TpChaveNFe().setNumeroNFe("").setInscricaoPrestador(""));
         pedidoCancelamentoNFe.addDetalhe(detalheItem);
 
-        final var response = new WSFacade(config).enviarPedidoCancelamentoNFe(pedidoCancelamentoNFe);
+        final NFSeSPSaoPauloRetornoCancelamentoNFe response = new WSFacade(config).enviarPedidoCancelamentoNFe(pedidoCancelamentoNFe);
         System.out.println(response.toXml());
     }
 }

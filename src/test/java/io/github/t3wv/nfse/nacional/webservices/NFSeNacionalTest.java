@@ -7,6 +7,7 @@ import io.github.t3wv.nfse.NFSeLogger;
 import io.github.t3wv.nfse.nacional.WSParametrosMunicipais;
 import io.github.t3wv.nfse.nacional.WSSefinNFSe;
 import io.github.t3wv.nfse.nacional.classes.nfsenacional.*;
+import io.github.t3wv.nfse.nacional.classes.parametrosmunicipais.consulta.*;
 import io.github.t3wv.nfse.utils.NFSeCadeiaCertificadosTest;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -37,17 +38,17 @@ public class NFSeNacionalTest implements NFSeLogger {
     @Test
     public void consultaConvenioMunicipioTest() throws Exception {
         getLogger().info("Teste de consulta de convênio do município na API de Parâmetros Municipais do Governo Federal");
-        final var codigoDoMunicipio = "3550308"; // SC - São José
-        final var consulta = new WSParametrosMunicipais(config).consultaConvenioMunicipio(codigoDoMunicipio);
+        final String codigoDoMunicipio = "3550308"; // SC - São José
+        final NFSeParametrosMunicipaisConvenioResponse consulta = new WSParametrosMunicipais(config).consultaConvenioMunicipio(codigoDoMunicipio);
         getLogger().info(consulta.toString());
     }
 
     @Disabled
     @Test
     public void consultaHistoricoAliquotaMunicipioServicoTest() throws Exception {
-        final var codigoDoMunicipio = "4216602";
-        final var codigoDoServico = "01.01.01.000";
-        final var consulta = new WSParametrosMunicipais(config).consultaHistoricoAliquotaMunicipioServico(codigoDoMunicipio, codigoDoServico);
+        final String codigoDoMunicipio = "4216602";
+        final String codigoDoServico = "01.01.01.000";
+        final NFSeParametrosMunicipaisAliquotasResponse consulta = new WSParametrosMunicipais(config).consultaHistoricoAliquotaMunicipioServico(codigoDoMunicipio, codigoDoServico);
         System.out.println(consulta);
     }
 
@@ -65,24 +66,24 @@ public class NFSeNacionalTest implements NFSeLogger {
     @Disabled
     @Test
     public void consultaRegimesEspeciaisMunicipioServicoCompetenciaTest() throws Exception {
-        final var codigoDoMunicipio = "4205407";
-        final var codigoDoServico = "10.01.01.000";
-        final var consulta = new WSParametrosMunicipais(config).consultaRegimesEspeciaisMunicipioServicoCompetencia(codigoDoMunicipio, codigoDoServico, LocalDate.now());
+        final String codigoDoMunicipio = "4205407";
+        final String codigoDoServico = "10.01.01.000";
+        final NFSeParametrosMunicipaisRegimesEspeciaisResponse consulta = new WSParametrosMunicipais(config).consultaRegimesEspeciaisMunicipioServicoCompetencia(codigoDoMunicipio, codigoDoServico, LocalDate.now());
         getLogger().info(consulta.toString());
     }
 
     @Disabled
     @Test
     public void consultaRetencoesMunicipioCompetenciaTest() throws Exception {
-        final var codigoDoMunicipio = "4205407";
-        final var consulta = new WSParametrosMunicipais(config).consultaRetencoesMunicipioCompetencia(codigoDoMunicipio, LocalDate.now().minusMonths(12));
+        final String codigoDoMunicipio = "4205407";
+        final NFSeParametrosMunicipaisRetencoesResponse consulta = new WSParametrosMunicipais(config).consultaRetencoesMunicipioCompetencia(codigoDoMunicipio, LocalDate.now().minusMonths(12));
         System.out.println(consulta);
     }
 
     @Test
     @Disabled
     public void testeEmitirNFSe() throws Exception {
-        final var dps = new NFSeSefinNacionalDPS()
+        final NFSeSefinNacionalDPS dps = new NFSeSefinNacionalDPS()
                 .setInfDPS(new NFSeSefinNacionalInfDPS()
                         .setTipoAmbiente(NFSeSefinNacionalTipoAmbiente.HOMOLOGACAO)
                         .setDataHoraEmissao(ZonedDateTime.of(2025, 10, 23, 10, 33, 19, 0, ZoneId.of("-03:00")))
@@ -102,7 +103,7 @@ public class NFSeNacionalTest implements NFSeLogger {
     @Disabled
     @Test
     public void testeCancelamentoNFSeByChaveAcesso() throws Exception {
-        final var evento = new NFSeSefinNacionalPedRegEvt().setInfPedReg(
+        final NFSeSefinNacionalPedRegEvt evento = new NFSeSefinNacionalPedRegEvt().setInfPedReg(
                 new NFSeSefinNacionalInfPedReg()
                         .setCNPJAutor("")
                         .setChaveAcessoNFSE("")

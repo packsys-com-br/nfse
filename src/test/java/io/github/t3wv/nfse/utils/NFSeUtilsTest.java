@@ -10,7 +10,7 @@ public class NFSeUtilsTest {
 
     @Test
     public void testeFormatoDPSId() {
-        final var dps = new NFSeSefinNacionalDPS().setInfDPS(new NFSeSefinNacionalInfDPS());
+        final NFSeSefinNacionalDPS dps = new NFSeSefinNacionalDPS().setInfDPS(new NFSeSefinNacionalInfDPS());
         dps.getInfDPS()
                 .setCodigoMunicipioEmissao("1234567")
                 .setSerie("7")
@@ -20,9 +20,9 @@ public class NFSeUtilsTest {
                 .setIntermediario(new NFSeSefinNacionalInfoPessoa().setCPF("60071397000"));
 
         // Testa os três tipos de emitente com cpf
-        for (final var tipoEmitente : NFSeSefinNacionalInfDPSTipoEmitente.values()) {
+        for (final NFSeSefinNacionalInfDPSTipoEmitente tipoEmitente : NFSeSefinNacionalInfDPSTipoEmitente.values()) {
             dps.getInfDPS().setTipoEmitente(tipoEmitente);
-            final var idGerado = NFSeUtils.gerarDPSId(dps);
+            final String idGerado = NFSeUtils.gerarDPSId(dps);
             dps.getInfDPS().setId(idGerado);
             switch (tipoEmitente) {
                 case PRESTADOR:
@@ -44,9 +44,9 @@ public class NFSeUtilsTest {
         dps.getInfDPS().getTomador().setCNPJ("83041294000127");
         dps.getInfDPS().getIntermediario().setCNPJ("48177960000158");
         // Testa os três tipos de emitente com cnpj
-        for (final var tipoEmitente : NFSeSefinNacionalInfDPSTipoEmitente.values()) {
+        for (final NFSeSefinNacionalInfDPSTipoEmitente tipoEmitente : NFSeSefinNacionalInfDPSTipoEmitente.values()) {
             dps.getInfDPS().setTipoEmitente(tipoEmitente);
-            final var idGerado = NFSeUtils.gerarDPSId(dps);
+            final String idGerado = NFSeUtils.gerarDPSId(dps);
             dps.getInfDPS().setId(idGerado);
             switch (tipoEmitente) {
                 case PRESTADOR:
@@ -74,7 +74,7 @@ public class NFSeUtilsTest {
     @Disabled
     @Test
     public void testeFormatoPedidoRegistroEventoId() {
-        final var evento = new NFSeSefinNacionalPedRegEvt();
+        final NFSeSefinNacionalPedRegEvt evento = new NFSeSefinNacionalPedRegEvt();
         Assertions.assertThrows(AssertionError.class, () -> NFSeUtils.gerarEventoId(evento));
 
         evento.setInfPedReg(new NFSeSefinNacionalInfPedReg().setChaveAcessoNFSE("12345123451234512134512345123451234512345123451234"));

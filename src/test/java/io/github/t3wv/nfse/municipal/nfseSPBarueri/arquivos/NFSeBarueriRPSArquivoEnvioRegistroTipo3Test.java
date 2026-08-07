@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class NFSeBarueriRPSArquivoEnvioRegistroTipo3Test {
     @Test
     void testFromLinhaAndToLinha() {
-        final var linha = "304000000000000018";
+        final String linha = "304000000000000018";
         assertEquals(linha, new NFSeBarueriRPSArquivoEnvioRegistroTipo3().fromLinha(linha).toLinha());
     }
 }

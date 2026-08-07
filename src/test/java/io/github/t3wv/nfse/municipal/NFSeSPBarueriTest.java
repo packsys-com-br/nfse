@@ -13,8 +13,11 @@ import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
 import java.net.URI;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -46,32 +49,32 @@ public class NFSeSPBarueriTest implements NFSeLogger {
         linha4.setEstadoProvinciaRegiaoLocalServicoPrestadoExterior("sldfk");
         linha4.setPaisLocalServicoPrestado(NFSeBarueriPais.US);
 
-        final var arquivo = new NFSeBarueriRPSArquivoEnvio()
+        final NFSeBarueriRPSArquivoEnvio arquivo = new NFSeBarueriRPSArquivoEnvio()
             .addRegistro(linha1)
             .addRegistro(linha2)
             .addRegistro(linha4)
             .addRegistro(linha9);
 
-        final var wsBarueri = new WSBarueri(config);
+        final WSBarueri wsBarueri = new WSBarueri(config);
 
-        final var arquivoRequest = new NFSeBarueriLoteEnviarArquivoRequest()
+        final NFSeBarueriLoteEnviarArquivoRequest arquivoRequest = new NFSeBarueriLoteEnviarArquivoRequest()
                 .setCpfCnpjContribuinte("")
                 .setInscricaoMunicipal("")
                 .setApenasValidaArquivo(false)
-                .setNomeArquivoRPS("RPS_%s.rem".formatted(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))))
+                .setNomeArquivoRPS(String.format("RPS_%s.rem", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))))
                 .setArquivoRPSBase64(arquivo.toBase64());
-        Files.write(Path.of("/tmp/%s.txt".formatted(arquivoRequest.getNomeArquivoRPS())), arquivo.toByteArray());
+        Files.write(Paths.get(String.format("/tmp/%s.txt", arquivoRequest.getNomeArquivoRPS())), arquivo.toByteArray());
 
         // Envio o lote para emissão
         final NFSeBarueriLoteEnviarArquivoResponse responseEnvioEmissao = wsBarueri.loteEnviarArquivo(arquivoRequest);
-        final var responseEnvioEmissaoProtocoloRemessa = responseEnvioEmissao.getResultado().getProtocoloRemessa();
-        this.getLogger().info("Protocolo de remessa da emissão: %s".formatted(responseEnvioEmissaoProtocoloRemessa));
+        final String responseEnvioEmissaoProtocoloRemessa = responseEnvioEmissao.getResultado().getProtocoloRemessa();
+        this.getLogger().info(String.format("Protocolo de remessa da emissão: %s", responseEnvioEmissaoProtocoloRemessa));
         Thread.sleep(1000);
 
         // Consulto o status do arquivo enviado
         final NFSeBarueriLoteStatusArquivoResponse responseStatusEmissao = wsBarueri
                 .loteStatusArquivo(new NFSeBarueriLoteStatusArquivoRequest("", "", responseEnvioEmissao.getResultado().getProtocoloRemessa()));
-        Files.writeString(Path.of("/tmp/%s".formatted(arquivoRequest.getNomeArquivoRPS().replaceAll(".rem", "_response_%s.xml".formatted(responseEnvioEmissao.getResultado().getProtocoloRemessa())))), responseStatusEmissao.toXml());
+        Files.write(Paths.get(String.format("/tmp/%s", arquivoRequest.getNomeArquivoRPS().replaceAll(".rem", String.format("_response_%s.xml", responseEnvioEmissao.getResultado().getProtocoloRemessa())))), responseStatusEmissao.toXml().getBytes(java.nio.charset.StandardCharsets.UTF_8));
         this.getLogger().info("Arquivo enviado {}, com nome de retorno {}, com situacao {}: {}",
                 responseStatusEmissao.getResult().getListaNfeArquivosRPS().getNomeArquivoOriginal(),
                 responseStatusEmissao.getResult().getListaNfeArquivosRPS().getNomeArquivoRetorno(),
@@ -85,59 +88,59 @@ public class NFSeSPBarueriTest implements NFSeLogger {
                         "",
                         "",
                         responseStatusEmissao.getResult().getListaNfeArquivosRPS().getNomeArquivoRetorno()));
-        Files.writeString(Path.of("/tmp/%s".formatted(arquivoRequest.getNomeArquivoRPS().replaceAll(".rem", "_download_%s.xml".formatted(responseEnvioEmissao.getResultado().getProtocoloRemessa())))), responseBaixarEmissao.toXml());
+        Files.write(Paths.get(String.format("/tmp/%s", arquivoRequest.getNomeArquivoRPS().replaceAll(".rem", String.format("_download_%s.xml", responseEnvioEmissao.getResultado().getProtocoloRemessa())))), responseBaixarEmissao.toXml().getBytes(java.nio.charset.StandardCharsets.UTF_8));
 
         if (!"OK200".equals(responseBaixarEmissao.getResultado().getListaMensagemRetorno().getCodigo())) {
-            throw new IllegalStateException("%s - %s - %s".formatted(
+            throw new IllegalStateException(String.format("%s - %s - %s",
                     responseBaixarEmissao.getResultado().getListaMensagemRetorno().getCodigo(),
                     responseBaixarEmissao.getResultado().getListaMensagemRetorno().getMensagem(),
                     responseBaixarEmissao.getResultado().getListaMensagemRetorno().getCorrecao()));
         }
 
         final NFSeBarueriLoteBaixarArquivoResult resultadoEmissao = responseBaixarEmissao.getResultado();
-        Files.write(Path.of("/tmp/%s".formatted(arquivoRequest.getNomeArquivoRPS().replaceAll(".rem", "_resultado_%s.txt".formatted(responseEnvioEmissao.getResultado().getProtocoloRemessa())))), Base64.getDecoder().decode(resultadoEmissao.getArquivoRPSBase64()));
+        Files.write(Paths.get(String.format("/tmp/%s", arquivoRequest.getNomeArquivoRPS().replaceAll(".rem", String.format("_resultado_%s.txt", responseEnvioEmissao.getResultado().getProtocoloRemessa())))), Base64.getDecoder().decode(resultadoEmissao.getArquivoRPSBase64()));
         if (!"OK200".equals(resultadoEmissao.getListaMensagemRetorno().getCodigo())) {
-            throw new IllegalStateException("%s - %s - %s".formatted(
+            throw new IllegalStateException(String.format("%s - %s - %s",
                     resultadoEmissao.getListaMensagemRetorno().getCodigo(),
                     resultadoEmissao.getListaMensagemRetorno().getMensagem(),
                     resultadoEmissao.getListaMensagemRetorno().getCorrecao()));
         }
 
         if (NFSeBarueriArquivoRetornoSituacaoArquivo.ARQUIVO_COM_ERROS.equals(responseStatusEmissao.getResult().getListaNfeArquivosRPS().getSituacaoArquivo())) {
-            final var arquivoRemessaComErros = resultadoEmissao.getArquivoEnvioComErros();
-            for (final var erro : arquivoRemessaComErros.getErros()) {
+            final NFSeBarueriRPSArquivoEnvio arquivoRemessaComErros = resultadoEmissao.getArquivoEnvioComErros();
+            for (final NFSeBarueriRetornoErros erro : arquivoRemessaComErros.getErros()) {
                 this.getLogger().error("Erro no arquivo de remessa - Código: {}, Descrição: {}, Solução: {}",
                         erro.getCodigo(),
                         erro.getDescricao(),
                         erro.getSolucao());
             }
         } else {
-            final var arquivoRetorno = resultadoEmissao.getArquivoRetorno();
+            final NFSeBarueriRPSArquivoRetorno arquivoRetorno = resultadoEmissao.getArquivoRetorno();
             for (NFSeBarueriRPSArquivoRetornoRegistro registro : arquivoRetorno.getRegistros()) {
                 if (NFSeBarueriRPSArquivoRetornoRegistroTipo2.TIPO_REGISTRO.equals(registro.getTipoRegistro())) {
-                    final var registroTipo2 = (NFSeBarueriRPSArquivoRetornoRegistroTipo2) registro;
-                    final var serie = registroTipo2.getSerieNFe();
-                    final var numero = registroTipo2.getNumeroNFe();
-                    final var emissao = registroTipo2.getDataNFe();
-                    final var rps = registroTipo2.getNumeroRPS();
-                    final var tomadorDocumento = registroTipo2.getTomadorDocumento();
-                    final var codigoAtenticidade = registroTipo2.getCodigoAutenticidade();
+                    final NFSeBarueriRPSArquivoRetornoRegistroTipo2 registroTipo2 = (NFSeBarueriRPSArquivoRetornoRegistroTipo2) registro;
+                    final String serie = registroTipo2.getSerieNFe();
+                    final Long numero = registroTipo2.getNumeroNFe();
+                    final LocalDate emissao = registroTipo2.getDataNFe();
+                    final String rps = registroTipo2.getNumeroRPS();
+                    final String tomadorDocumento = registroTipo2.getTomadorDocumento();
+                    final String codigoAtenticidade = registroTipo2.getCodigoAutenticidade();
                     //final var chaveNFSeNacional = registroTipo2.getChaveAcessoNFSeNacional();
 
                     //salva o pdf da emissao
                     try (final InputStream in = new URI(String.format("http://testeeiss.barueri.sp.gov.br/nfe/wfimagemnota.aspx?codigoautenticidade=%s&numdoc=%s", codigoAtenticidade, tomadorDocumento)).toURL().openStream()) {
                         this.getLogger().debug("Download PDF nota servico Barueri: {} {}", codigoAtenticidade, tomadorDocumento);
-                        Files.write(Path.of("/tmp/%s_%s_emitida.pdf".formatted(rps, numero)), in.readAllBytes());
+                        Files.write(Paths.get(String.format("/tmp/%s_%s_emitida.pdf", rps, numero)), readAllBytes(in));
                     }
 
                     //inicia o cancelamento
                     for (NFSeBarueriRPSArquivoEnvioRegistro arquivoRegistro : arquivo.getRegistros()) {
                         if (NFSeBarueriRPSArquivoEnvioRegistroTipo1.TIPO_REGISTRO.equals(arquivoRegistro.getTipoRegistro())) {
-                            final var rpsParaCancelamento = (NFSeBarueriRPSArquivoEnvioRegistroTipo1) arquivoRegistro;
-                            rpsParaCancelamento.setIdentificacaoRemessaContribuinte("%s%s".formatted(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd")), LocalTime.now().toSecondOfDay()));
+                            final NFSeBarueriRPSArquivoEnvioRegistroTipo1 rpsParaCancelamento = (NFSeBarueriRPSArquivoEnvioRegistroTipo1) arquivoRegistro;
+                            rpsParaCancelamento.setIdentificacaoRemessaContribuinte(String.format("%s%s", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd")), LocalTime.now().toSecondOfDay()));
                         }
                         if (NFSeBarueriRPSArquivoEnvioRegistroTipo2.TIPO_REGISTRO.equals(arquivoRegistro.getTipoRegistro())) {
-                            final var rpsParaCancelamento = (NFSeBarueriRPSArquivoEnvioRegistroTipo2) arquivoRegistro;
+                            final NFSeBarueriRPSArquivoEnvioRegistroTipo2 rpsParaCancelamento = (NFSeBarueriRPSArquivoEnvioRegistroTipo2) arquivoRegistro;
                             rpsParaCancelamento
                                     .setNumeroRPS(0L)
                                     .setSituacaoRPS(NFSeBarueriSituacao.CANCELADO)
@@ -150,23 +153,23 @@ public class NFSeSPBarueriTest implements NFSeLogger {
                     }
 
                     //refaz a request
-                    final var cancelamentoRequest = new NFSeBarueriLoteEnviarArquivoRequest()
+                    final NFSeBarueriLoteEnviarArquivoRequest cancelamentoRequest = new NFSeBarueriLoteEnviarArquivoRequest()
                             .setCpfCnpjContribuinte("03918609000647")
                             .setInscricaoMunicipal("4458481")
                             .setApenasValidaArquivo(false)
-                            .setNomeArquivoRPS("RPS_%s_cancelamento.rem".formatted(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))))
+                            .setNomeArquivoRPS(String.format("RPS_%s_cancelamento.rem", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))))
                             .setArquivoRPSBase64(arquivo.toBase64());
-                    Files.write(Path.of("/tmp/%s.txt".formatted(cancelamentoRequest.getNomeArquivoRPS())), arquivo.toByteArray());
+                    Files.write(Paths.get(String.format("/tmp/%s.txt", cancelamentoRequest.getNomeArquivoRPS())), arquivo.toByteArray());
 
                     // Envio o lote para emissão
-                    final var cancelamentoEnvioResponse = wsBarueri.loteEnviarArquivo(cancelamentoRequest);
-                    final var cancelamentoEnvioResponseProtocoloRemessa = cancelamentoEnvioResponse.getResultado().getProtocoloRemessa();
-                    this.getLogger().info("Protocolo de remessa do cancelamento: %s".formatted(cancelamentoEnvioResponseProtocoloRemessa));
+                    final NFSeBarueriLoteEnviarArquivoResponse cancelamentoEnvioResponse = wsBarueri.loteEnviarArquivo(cancelamentoRequest);
+                    final String cancelamentoEnvioResponseProtocoloRemessa = cancelamentoEnvioResponse.getResultado().getProtocoloRemessa();
+                    this.getLogger().info(String.format("Protocolo de remessa do cancelamento: %s", cancelamentoEnvioResponseProtocoloRemessa));
                     Thread.sleep(1000);
 
                     // Consulto o status do arquivo enviado
-                    final var cancelamentoStatusResponse = wsBarueri.loteStatusArquivo(new NFSeBarueriLoteStatusArquivoRequest("4458481", "03918609000647", cancelamentoEnvioResponse.getResultado().getProtocoloRemessa()));
-                    Files.writeString(Path.of("/tmp/%s".formatted(cancelamentoRequest.getNomeArquivoRPS().replaceAll(".rem", "_response_%s.xml".formatted(cancelamentoEnvioResponse.getResultado().getProtocoloRemessa())))), cancelamentoStatusResponse.toXml());
+                    final NFSeBarueriLoteStatusArquivoResponse cancelamentoStatusResponse = wsBarueri.loteStatusArquivo(new NFSeBarueriLoteStatusArquivoRequest("4458481", "03918609000647", cancelamentoEnvioResponse.getResultado().getProtocoloRemessa()));
+                    Files.write(Paths.get(String.format("/tmp/%s", cancelamentoRequest.getNomeArquivoRPS().replaceAll(".rem", String.format("_response_%s.xml", cancelamentoEnvioResponse.getResultado().getProtocoloRemessa())))), cancelamentoStatusResponse.toXml().getBytes(java.nio.charset.StandardCharsets.UTF_8));
                     this.getLogger().info("Arquivo enviado {}, com nome de retorno {}, com situacao {}: {}",
                             cancelamentoStatusResponse.getResult().getListaNfeArquivosRPS().getNomeArquivoOriginal(),
                             cancelamentoStatusResponse.getResult().getListaNfeArquivosRPS().getNomeArquivoRetorno(),
@@ -175,31 +178,31 @@ public class NFSeSPBarueriTest implements NFSeLogger {
                     Thread.sleep(1000);
 
                     // Baixo o arquivo de retorno da emissão
-                    final var responseBaixarCancelamento = wsBarueri
+                    final NFSeBarueriLoteBaixarArquivoResponse responseBaixarCancelamento = wsBarueri
                             .loteBaixarArquivo(new NFSeBarueriLoteBaixarArquivoRequest(
                                     "4458481",
                                     "03918609000647",
                                     cancelamentoStatusResponse.getResult().getListaNfeArquivosRPS().getNomeArquivoRetorno()));
-                    Files.writeString(Path.of("/tmp/%s".formatted(cancelamentoRequest.getNomeArquivoRPS().replaceAll(".rem", "_download_%s.xml".formatted(cancelamentoEnvioResponse.getResultado().getProtocoloRemessa())))), responseBaixarCancelamento.toXml());
+                    Files.write(Paths.get(String.format("/tmp/%s", cancelamentoRequest.getNomeArquivoRPS().replaceAll(".rem", String.format("_download_%s.xml", cancelamentoEnvioResponse.getResultado().getProtocoloRemessa())))), responseBaixarCancelamento.toXml().getBytes(java.nio.charset.StandardCharsets.UTF_8));
                     if (!"OK200".equals(responseBaixarCancelamento.getResultado().getListaMensagemRetorno().getCodigo())) {
-                        throw new IllegalStateException("%s - %s - %s".formatted(
+                        throw new IllegalStateException(String.format("%s - %s - %s",
                                 responseBaixarCancelamento.getResultado().getListaMensagemRetorno().getCodigo(),
                                 responseBaixarCancelamento.getResultado().getListaMensagemRetorno().getMensagem(),
                                 responseBaixarCancelamento.getResultado().getListaMensagemRetorno().getCorrecao()));
                     }
 
-                    final var resultadoCancelamento = responseBaixarCancelamento.getResultado();
-                    Files.write(Path.of("/tmp/%s".formatted(cancelamentoRequest.getNomeArquivoRPS().replaceAll(".rem", "_resultado_%s.txt".formatted(cancelamentoEnvioResponse.getResultado().getProtocoloRemessa())))), Base64.getDecoder().decode(resultadoCancelamento.getArquivoRPSBase64()));
+                    final NFSeBarueriLoteBaixarArquivoResult resultadoCancelamento = responseBaixarCancelamento.getResultado();
+                    Files.write(Paths.get(String.format("/tmp/%s", cancelamentoRequest.getNomeArquivoRPS().replaceAll(".rem", String.format("_resultado_%s.txt", cancelamentoEnvioResponse.getResultado().getProtocoloRemessa())))), Base64.getDecoder().decode(resultadoCancelamento.getArquivoRPSBase64()));
                     if (!"OK200".equals(resultadoCancelamento.getListaMensagemRetorno().getCodigo())) {
-                        throw new IllegalStateException("%s - %s - %s".formatted(
+                        throw new IllegalStateException(String.format("%s - %s - %s",
                                 resultadoCancelamento.getListaMensagemRetorno().getCodigo(),
                                 resultadoCancelamento.getListaMensagemRetorno().getMensagem(),
                                 resultadoCancelamento.getListaMensagemRetorno().getCorrecao()));
                     }
 
                     if (NFSeBarueriArquivoRetornoSituacaoArquivo.ARQUIVO_COM_ERROS.equals(cancelamentoStatusResponse.getResult().getListaNfeArquivosRPS().getSituacaoArquivo())) {
-                        final var arquivoRemessaComErros = resultadoCancelamento.getArquivoEnvioComErros();
-                        for (final var erro : arquivoRemessaComErros.getErros()) {
+                        final NFSeBarueriRPSArquivoEnvio arquivoRemessaComErros = resultadoCancelamento.getArquivoEnvioComErros();
+                        for (final NFSeBarueriRetornoErros erro : arquivoRemessaComErros.getErros()) {
                             this.getLogger().error("Erro no arquivo de remessa - Código: {}, Descrição: {}, Solução: {}",
                                     erro.getCodigo(),
                                     erro.getDescricao(),
@@ -209,11 +212,22 @@ public class NFSeSPBarueriTest implements NFSeLogger {
                         //salva o pdf do cancelamento
                         try (final InputStream in = new URI(String.format("http://testeeiss.barueri.sp.gov.br/nfe/wfimagemnota.aspx?codigoautenticidade=%s&numdoc=%s", codigoAtenticidade, tomadorDocumento)).toURL().openStream()) {
                             this.getLogger().debug("Download PDF nota servico Barueri: {} {}", codigoAtenticidade, tomadorDocumento);
-                            Files.write(Path.of("/tmp/%s_%s_cancelada.pdf".formatted(rps, numero)), in.readAllBytes());
+                            Files.write(Paths.get(String.format("/tmp/%s_%s_cancelada.pdf", rps, numero)), readAllBytes(in));
                         }
                     }
                 }
             }
+        }
+    }
+
+    private static byte[] readAllBytes(InputStream in) throws IOException {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = in.read(buffer)) != -1) {
+                baos.write(buffer, 0, read);
+            }
+            return baos.toByteArray();
         }
     }
 }
