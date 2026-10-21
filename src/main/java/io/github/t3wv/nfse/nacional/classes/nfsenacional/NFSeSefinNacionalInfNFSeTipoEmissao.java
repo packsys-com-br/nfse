@@ -6,9 +6,8 @@ import org.simpleframework.xml.Root;
 @Root(name = "tpEmis")
 public enum NFSeSefinNacionalInfNFSeTipoEmissao {
 
-    WEB_SERVICE("1", "Emissão com aplicativo do contribuinte (via Web Service)"),
-    WEB("2", "Emissão com aplicativo disponibilizado pelo fisco (Web)"),
-    APP("3", "Emissão com aplicativo disponibilizado pelo fisco (App)");
+    NORMAL("1", "Emissão normal no modelo da NFS-e Nacional"),
+    LEIAUTE_MUNICIPAL("2", "Emissão original em leiaute próprio do município com transcrição para o modelo da NFS-e Nacional");
 
     private final String codigo;
     private final String descricao;

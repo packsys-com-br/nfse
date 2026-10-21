@@ -3,7 +3,7 @@ package io.github.t3wv.nfse.nacional.classes.nfsenacional;
 
 import org.simpleframework.xml.Root;
 
-@Root(name = "tpEmis")
+@Root(name = "procEmi")
 public enum NFSeSefinNacionalInfNFSeProcessoEmissao {
 
     WEB_SERVICE("1", "Emissão com aplicativo do contribuinte (via Web Service)"),

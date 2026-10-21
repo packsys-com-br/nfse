@@ -55,6 +55,14 @@ public class NFSeHttpClient implements NFSeLogger {
         final HttpsURLConnection connection = this.openConnection(uri, "GET");
         connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
         return this.execute(connection);
+        final var httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).followRedirects(HttpClient.Redirect.NORMAL).sslContext(this.getSslContext()).build();
+        try {
+            return httpClient.send(HttpRequest.newBuilder().GET().uri(uri).headers("Content-Type", "application/json; charset=utf-8").timeout(Duration.ofSeconds(config.getHttpGetTimeoutSegundos())).build(), responseBodyHandler);
+        } finally {
+            if (httpClient instanceof AutoCloseable closeable) {
+                closeable.close();
+            }
+        }
     }
 
     public NFSeHttpResponse<String> sendPostRequest(final URI uri, final String body) throws Exception {
@@ -101,6 +109,13 @@ public class NFSeHttpClient implements NFSeLogger {
                 baos.write(buffer, 0, read);
             }
             return baos.toByteArray();
+        final var httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).followRedirects(HttpClient.Redirect.NORMAL).sslContext(this.getSslContext()).build();
+        try {
+            return httpClient.send(HttpRequest.newBuilder().POST(HttpRequest.BodyPublishers.ofString(body)).headers(headers.entrySet().stream().flatMap(entry -> Stream.of(entry.getKey(), entry.getValue())).toArray(String[]::new)).timeout(Duration.ofSeconds(config.getHttpPostTimeoutSegundos())).uri(uri).build(), HttpResponse.BodyHandlers.ofString());
+        } finally {
+            if (httpClient instanceof AutoCloseable closeable) {
+                closeable.close();
+            }
         }
     }
 

@@ -13,9 +13,10 @@ import java.math.BigDecimal;
 @Root(name = "vDescCondIncond")
 public class NFSeSefinNacionalVDescCondIncond {
 
-    @Element(name = "vDescIncond")
+    // B-155/B-156 no Manual de Integracao NFSe Nacional v1.01: ambos 0-1, opcionais e independentes
+    @Element(name = "vDescIncond", required = false)
     protected BigDecimal valorDescontoIncondicionado;
-    @Element(name = "vDescCond")
+    @Element(name = "vDescCond", required = false)
     protected BigDecimal valorDescontoCondicionado;
 
     /**

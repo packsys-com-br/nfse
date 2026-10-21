@@ -3,7 +3,7 @@ package io.github.t3wv.nfse.nacional.classes.nfsenacional;
 
 import org.simpleframework.xml.*;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Root(name = "InfNFSe")
 public class NFSeSefinNacionalInfNFSe {
@@ -12,7 +12,7 @@ public class NFSeSefinNacionalInfNFSe {
     protected String localEmissao;
     @Element(name = "xLocPrestacao", required = true)
     protected String localPrestacao;
-    @Element(name = "nNFSe", required = false)
+    @Element(name = "nNFSe")
     protected String numeroNFSe;
     @Element(name = "cLocIncid", required = false)
     protected String codigoLocalIncidenciaISSQN;
@@ -27,24 +27,26 @@ public class NFSeSefinNacionalInfNFSe {
     @Element(name = "verAplic", required = true)
     protected String versaoAplicacao;
     @Element(name = "ambGer", required = true)
-    protected String ambienteGeracao;
+    protected NFSeSefinNacionalInfNFSeAmbienteGeracao ambienteGeracao;
     @Element(name = "tpEmis", required = true)
     protected NFSeSefinNacionalInfNFSeTipoEmissao tipoEmissao;
-    @Element(name = "procEmi", required = true)
+    @Element(name = "procEmi", required = false)
     protected NFSeSefinNacionalInfNFSeProcessoEmissao processoEmissao;
     @Element(name = "cStat", required = true)
-    protected String codigoStatus;
+    protected NFSeSefinNacionalInfNFSeSituacao situacao;
     @Element(name = "dhProc", required = true)
-    protected LocalDateTime dataHoraProcessamento;
+    protected ZonedDateTime dataHoraProcessamento;
     @Element(name = "nDFSe", required = false)
     protected String numeroDFSe;
     @Element(name = "emit", required = true)
     protected NFSeSefinNacionalEmitente emitente;
     @Element(name = "valores", required = true)
     protected NFSeSefinNacionalValoresNFSe valores;
+    @Element(name = "xOutInf", required = false)
+    protected String informacoesUsoAdministracaoTributaria;
     @Element(name = "IBSCBS", required = false)
     protected NFSeSefinNacionalInfNFSeIBSCBS ibsCbs;
-    @Element(name = "DPS", required = false)
+    @Element(name = "DPS", required = true)
     protected NFSeSefinNacionalDPS dps;
     @Attribute(name = "Id", required = false)
     protected String id;
@@ -130,11 +132,11 @@ public class NFSeSefinNacionalInfNFSe {
         return this;
     }
 
-    public String getAmbienteGeracao() {
+    public NFSeSefinNacionalInfNFSeAmbienteGeracao getAmbienteGeracao() {
         return ambienteGeracao;
     }
 
-    public NFSeSefinNacionalInfNFSe setAmbienteGeracao(String ambienteGeracao) {
+    public NFSeSefinNacionalInfNFSe setAmbienteGeracao(NFSeSefinNacionalInfNFSeAmbienteGeracao ambienteGeracao) {
         this.ambienteGeracao = ambienteGeracao;
         return this;
     }
@@ -152,25 +154,25 @@ public class NFSeSefinNacionalInfNFSe {
         return processoEmissao;
     }
 
-    public NFSeSefinNacionalInfNFSe setProcessoEmissao(NFSeSefinNacionalInfNFSeProcessoEmissao value) {
+    public NFSeSefinNacionalInfNFSe setProcessoEmissao(NFSeSefinNacionalInfNFSeProcessoEmissao processoEmissao) {
         this.processoEmissao = processoEmissao;
         return this;
     }
 
-    public String getCodigoStatus() {
-        return codigoStatus;
+    public NFSeSefinNacionalInfNFSeSituacao getSituacao() {
+        return situacao;
     }
 
-    public NFSeSefinNacionalInfNFSe setCodigoStatus(String codigoStatus) {
-        this.codigoStatus = codigoStatus;
+    public NFSeSefinNacionalInfNFSe setSituacao(NFSeSefinNacionalInfNFSeSituacao situacao) {
+        this.situacao = situacao;
         return this;
     }
 
-    public LocalDateTime getDataHoraProcessamento() {
+    public ZonedDateTime getDataHoraProcessamento() {
         return dataHoraProcessamento;
     }
 
-    public NFSeSefinNacionalInfNFSe setDataHoraProcessamento(LocalDateTime value) {
+    public NFSeSefinNacionalInfNFSe setDataHoraProcessamento(ZonedDateTime value) {
         this.dataHoraProcessamento = value;
         return this;
     }
@@ -181,6 +183,21 @@ public class NFSeSefinNacionalInfNFSe {
 
     public NFSeSefinNacionalInfNFSe setNumeroDFSe(String numeroDFSe) {
         this.numeroDFSe = numeroDFSe;
+        return this;
+    }
+
+    /**
+     * @return Informações de uso da Administração Tributária Municipal
+     */
+    public String getInformacoesUsoAdministracaoTributaria() {
+        return informacoesUsoAdministracaoTributaria;
+    }
+
+    /**
+     * @param value Informações de uso da Administração Tributária Municipal
+     */
+    public NFSeSefinNacionalInfNFSe setInformacoesUsoAdministracaoTributaria(String value) {
+        this.informacoesUsoAdministracaoTributaria = value;
         return this;
     }
 
