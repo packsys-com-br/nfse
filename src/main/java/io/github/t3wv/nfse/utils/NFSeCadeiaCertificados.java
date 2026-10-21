@@ -35,7 +35,6 @@ public abstract class NFSeCadeiaCertificados implements NFSeLogger {
      */
     @Deprecated
     public static byte[] geraCadeiaCertificados(final NFSeConfig config) throws Exception {
-        final String cadeiaCertificadosSenha = config.getCadeiaCertificadosSenha();
         return NFSeCadeiaCertificados.geraCadeiaCertificados(config.getCadeiaCertificadosSenha());
     }
 

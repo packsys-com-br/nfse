@@ -4,6 +4,7 @@ import io.github.t3wv.nfse.NFSeConfig;
 import io.github.t3wv.nfse.NFSeLogger;
 import io.github.t3wv.nfse.nacional.classes.adn.NFSeAdnLoteDistribuicaoResponse;
 import io.github.t3wv.nfse.utils.NFSeHttpClient;
+import io.github.t3wv.nfse.utils.NFSeHttpResponse;
 import io.github.t3wv.nfse.utils.NFSeObjectMapper;
 import io.github.t3wv.nfse.utils.NFSeUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -103,14 +104,14 @@ public class WSDistribuicaoDFe implements NFSeLogger {
      */
     public NFSeAdnLoteDistribuicaoResponse consultarEventosPorChaveAcesso(final String chaveAcesso) throws Exception {
         //normaliza a chave de acesso removendo quaisquer caracteres não numéricos
-        final var chaveAcessoNormalizada = StringUtils.defaultString(chaveAcesso).replaceAll("\\D", "");
+        final String chaveAcessoNormalizada = StringUtils.defaultString(chaveAcesso).replaceAll("\\D", "");
 
         //valida o tamanho da chave de acesso, pois precisa ser exatamente 50 caracteres numericos
         if (!chaveAcessoNormalizada.matches("\\d{50}")) {
             throw new IllegalArgumentException("Chave de acesso da NFSe deve conter exatamente 50 dígitos numéricos!");
         }
 
-        final var url = new URI("%s/NFSe/%s/Eventos".formatted(this.getUrlBase(), chaveAcessoNormalizada));
+        final URI url = new URI(String.format("%s/NFSe/%s/Eventos", this.getUrlBase(), chaveAcessoNormalizada));
         return this.executarConsulta(url);
     }
 
@@ -123,18 +124,18 @@ public class WSDistribuicaoDFe implements NFSeLogger {
             throw new IllegalArgumentException("O NSU não pode ser negativo!");
         }
 
-        final var url = new StringBuilder("%s/DFe/%d".formatted(this.getUrlBase(), nsu));
+        final StringBuilder url = new StringBuilder(String.format("%s/DFe/%d", this.getUrlBase(), nsu));
         if (lote) {
             url.append("?lote=true");
         }
         if (StringUtils.isNotBlank(cnpjConsulta)) {
-            final var cnpjNormalizado = cnpjConsulta.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
+            final String cnpjNormalizado = cnpjConsulta.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
             if (!NFSeUtils.isCnpjValido(cnpjNormalizado)) {
-                throw new IllegalArgumentException("O CNPJ de consulta '%s' é inválido!".formatted(cnpjConsulta));
+                throw new IllegalArgumentException(String.format("O CNPJ de consulta '%s' é inválido!", cnpjConsulta));
             }
             url.append(lote ? '&' : '?')
                 .append("cnpjConsulta=")
-                .append(URLEncoder.encode(cnpjNormalizado, StandardCharsets.UTF_8));
+                .append(URLEncoder.encode(cnpjNormalizado, StandardCharsets.UTF_8.name()));
         }
 
         return this.executarConsulta(new URI(url.toString()));
@@ -149,18 +150,20 @@ public class WSDistribuicaoDFe implements NFSeLogger {
      * NSU consultado). Só os demais códigos viram exceção.
      */
     private NFSeAdnLoteDistribuicaoResponse executarConsulta(final URI url) throws Exception {
-        final var response = new NFSeHttpClient(this.config).sendGetRequest(url);
+        final NFSeHttpResponse<String> response = new NFSeHttpClient(this.config).sendGetRequest(url);
         //só metadados no log: o corpo traz o XML fiscal de todos os documentos do lote
         this.getLogger().debug("Response {}: {} bytes", response.statusCode(), StringUtils.length(response.body()));
 
         switch (response.statusCode()) {
-            case HttpURLConnection.HTTP_OK, HttpURLConnection.HTTP_BAD_REQUEST, HttpURLConnection.HTTP_NOT_FOUND -> {
+            case HttpURLConnection.HTTP_OK:
+            case HttpURLConnection.HTTP_BAD_REQUEST:
+            case HttpURLConnection.HTTP_NOT_FOUND:
                 if (StringUtils.isBlank(response.body())) {
-                    throw new IllegalStateException("Consulta de distribuição de DFe em '%s' retornou código '%d' com corpo vazio!".formatted(url, response.statusCode()));
+                    throw new IllegalStateException(String.format("Consulta de distribuição de DFe em '%s' retornou código '%d' com corpo vazio!", url, response.statusCode()));
                 }
                 return this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeAdnLoteDistribuicaoResponse.class);
-            }
-            default -> throw new IllegalStateException("Consulta de distribuição de DFe em '%s' retornou erro '%d': %s".formatted(url, response.statusCode(), StringUtils.abbreviate(response.body(), 300)));
+            default:
+                throw new IllegalStateException(String.format("Consulta de distribuição de DFe em '%s' retornou erro '%d': %s", url, response.statusCode(), StringUtils.abbreviate(response.body(), 300)));
         }
     }
 

@@ -26,7 +26,7 @@ public class NFSeAdnDistribuicaoTest {
     private static final String XML_DOCUMENTO = "<NFSe xmlns=\"http://www.sped.fazenda.gov.br/nfse\"><infNFSe><nNFSe>1</nNFSe></infNFSe></NFSe>";
 
     private static String gzipBase64(final String conteudo) throws Exception {
-        try (final var baos = new ByteArrayOutputStream(); final var gzip = new GZIPOutputStream(baos)) {
+        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream(); final GZIPOutputStream gzip = new GZIPOutputStream(baos)) {
             gzip.write(conteudo.getBytes(StandardCharsets.UTF_8));
             gzip.finish();
             return Base64.getEncoder().encodeToString(baos.toByteArray());
@@ -39,36 +39,34 @@ public class NFSeAdnDistribuicaoTest {
 
     @Test
     public void desserializaLoteComDocumentos() throws Exception {
-        final var json = """
-            {
-              "StatusProcessamento": "DOCUMENTOS_LOCALIZADOS",
-              "LoteDFe": [
-                {
-                  "NSU": 1,
-                  "ChaveAcesso": "26125051226063877000115250000000685425085159913279",
-                  "TipoDocumento": "NFSE",
-                  "TipoEvento": null,
-                  "ArquivoXml": "%s",
-                  "DataHoraGeracao": "2025-08-30T00:04:36.633"
-                },
-                {
-                  "NSU": 7,
-                  "ChaveAcesso": "26125051226063877000115250000000685425085159913279",
-                  "TipoDocumento": "EVENTO",
-                  "TipoEvento": "101101",
-                  "ArquivoXml": "%s",
-                  "DataHoraGeracao": "2025-08-31T10:12:00.000"
-                }
-              ],
-              "Alertas": [],
-              "Erros": [],
-              "TipoAmbiente": "HOMOLOGACAO",
-              "VersaoAplicativo": "1.0.0.0",
-              "DataHoraProcessamento": "2026-08-13T20:37:43-03:00"
-            }
-            """.formatted(gzipBase64(XML_DOCUMENTO), gzipBase64(XML_DOCUMENTO));
+        final String json = String.format("{\n"
+            + "  \"StatusProcessamento\": \"DOCUMENTOS_LOCALIZADOS\",\n"
+            + "  \"LoteDFe\": [\n"
+            + "    {\n"
+            + "      \"NSU\": 1,\n"
+            + "      \"ChaveAcesso\": \"26125051226063877000115250000000685425085159913279\",\n"
+            + "      \"TipoDocumento\": \"NFSE\",\n"
+            + "      \"TipoEvento\": null,\n"
+            + "      \"ArquivoXml\": \"%s\",\n"
+            + "      \"DataHoraGeracao\": \"2025-08-30T00:04:36.633\"\n"
+            + "    },\n"
+            + "    {\n"
+            + "      \"NSU\": 7,\n"
+            + "      \"ChaveAcesso\": \"26125051226063877000115250000000685425085159913279\",\n"
+            + "      \"TipoDocumento\": \"EVENTO\",\n"
+            + "      \"TipoEvento\": \"101101\",\n"
+            + "      \"ArquivoXml\": \"%s\",\n"
+            + "      \"DataHoraGeracao\": \"2025-08-31T10:12:00.000\"\n"
+            + "    }\n"
+            + "  ],\n"
+            + "  \"Alertas\": [],\n"
+            + "  \"Erros\": [],\n"
+            + "  \"TipoAmbiente\": \"HOMOLOGACAO\",\n"
+            + "  \"VersaoAplicativo\": \"1.0.0.0\",\n"
+            + "  \"DataHoraProcessamento\": \"2026-08-13T20:37:43-03:00\"\n"
+            + "}\n", gzipBase64(XML_DOCUMENTO), gzipBase64(XML_DOCUMENTO));
 
-        final var response = desserializar(json);
+        final NFSeAdnLoteDistribuicaoResponse response = desserializar(json);
 
         Assertions.assertEquals(NFSeAdnStatusProcessamento.DOCUMENTOS_LOCALIZADOS, response.getStatusProcessamento());
         Assertions.assertTrue(response.temDocumentos());
@@ -95,41 +93,39 @@ public class NFSeAdnDistribuicaoTest {
 
     @Test
     public void desserializaLoteVazioComRejeicao() throws Exception {
-        final var json = """
-            {
-              "StatusProcessamento": "NENHUM_DOCUMENTO_LOCALIZADO",
-              "LoteDFe": null,
-              "Alertas": [],
-              "Erros": [ { "Codigo": "E2215", "Descricao": "Não existem DF-e a partir do NSU informado", "Complemento": "NSU 999" } ],
-              "TipoAmbiente": "PRODUCAO",
-              "VersaoAplicativo": "1.0.0.0",
-              "DataHoraProcessamento": "2026-08-13T20:37:43-03:00"
-            }
-            """;
+        final String json = "{\n"
+            + "  \"StatusProcessamento\": \"NENHUM_DOCUMENTO_LOCALIZADO\",\n"
+            + "  \"LoteDFe\": null,\n"
+            + "  \"Alertas\": [],\n"
+            + "  \"Erros\": [ { \"Codigo\": \"E2215\", \"Descricao\": \"Não existem DF-e a partir do NSU informado\", \"Complemento\": \"NSU 999\" } ],\n"
+            + "  \"TipoAmbiente\": \"PRODUCAO\",\n"
+            + "  \"VersaoAplicativo\": \"1.0.0.0\",\n"
+            + "  \"DataHoraProcessamento\": \"2026-08-13T20:37:43-03:00\"\n"
+            + "}\n";
 
-        final var response = desserializar(json);
+        final NFSeAdnLoteDistribuicaoResponse response = desserializar(json);
 
         Assertions.assertTrue(response.vazio());
         Assertions.assertFalse(response.temDocumentos());
         //lote nulo não pode estourar em quem itera
         Assertions.assertNotNull(response.getLoteDFe());
         Assertions.assertTrue(response.getLoteDFe().isEmpty());
-        Assertions.assertTrue(response.getMaiorNsu().isEmpty());
+        Assertions.assertFalse(response.getMaiorNsu().isPresent());
         Assertions.assertEquals(1, response.getErros().size());
         Assertions.assertEquals("E2215", response.getErros().get(0).getCodigo());
     }
 
     @Test
     public void desempacotaArquivoXmlComprimido() throws Exception {
-        final var documento = new NFSeAdnDocumentoDistribuido().setArquivoXml(gzipBase64(XML_DOCUMENTO));
+        final NFSeAdnDocumentoDistribuido documento = new NFSeAdnDocumentoDistribuido().setArquivoXml(gzipBase64(XML_DOCUMENTO));
         Assertions.assertEquals(XML_DOCUMENTO, documento.getXml());
     }
 
     @Test
     public void desempacotaArquivoXmlSemCompressao() throws Exception {
         //o gzip não é declarado no contrato; se um dia deixar de vir, o conteúdo ainda deve ser lido
-        final var base64Puro = Base64.getEncoder().encodeToString(XML_DOCUMENTO.getBytes(StandardCharsets.UTF_8));
-        final var documento = new NFSeAdnDocumentoDistribuido().setArquivoXml(base64Puro);
+        final String base64Puro = Base64.getEncoder().encodeToString(XML_DOCUMENTO.getBytes(StandardCharsets.UTF_8));
+        final NFSeAdnDocumentoDistribuido documento = new NFSeAdnDocumentoDistribuido().setArquivoXml(base64Puro);
         Assertions.assertEquals(XML_DOCUMENTO, documento.getXml());
     }
 
@@ -142,20 +138,20 @@ public class NFSeAdnDistribuicaoTest {
     @Test
     public void desempacotaArquivoXmlCorrompido() {
         //conteúdo corrompido precisa sair como IOException, que é o que getXml() declara
-        final var documento = new NFSeAdnDocumentoDistribuido().setNsu(9L).setArquivoXml("não é base64!!");
+        final NFSeAdnDocumentoDistribuido documento = new NFSeAdnDocumentoDistribuido().setNsu(9L).setArquivoXml("não é base64!!");
         Assertions.assertThrows(java.io.IOException.class, documento::getXml);
     }
 
     @Test
     public void rejeitaChaveAcessoInvalidaNaConsultaDeEventos() {
-        final var ws = new WSDistribuicaoDFe(new NFSeConfigDistribuicaoStub());
+        final WSDistribuicaoDFe ws = new WSDistribuicaoDFe(new NFSeConfigDistribuicaoStub());
         Assertions.assertThrows(IllegalArgumentException.class, () -> ws.consultarEventosPorChaveAcesso("123"));
         Assertions.assertThrows(IllegalArgumentException.class, () -> ws.consultarEventosPorChaveAcesso(null));
     }
 
     @Test
     public void rejeitaNsuNegativoECnpjInvalido() {
-        final var ws = new WSDistribuicaoDFe(new NFSeConfigDistribuicaoStub());
+        final WSDistribuicaoDFe ws = new WSDistribuicaoDFe(new NFSeConfigDistribuicaoStub());
         Assertions.assertThrows(IllegalArgumentException.class, () -> ws.distribuirDFe(-1));
         Assertions.assertThrows(IllegalArgumentException.class, () -> ws.distribuirDFe(0, "12345678000100"));
     }

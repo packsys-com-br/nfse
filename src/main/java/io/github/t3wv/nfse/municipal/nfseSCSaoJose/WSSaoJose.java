@@ -27,8 +27,8 @@ public class WSSaoJose implements NFSeLogger {
     public WSSaoJose(String login, String senha) {
         this.credentials = Base64.getEncoder().encodeToString(String.format("%s:%s", login, senha).getBytes());
     }
-    public NFSeSCSaoJoseEmissaoRetorno enviarEmissaoNFSe(final NFSeSCSaoJoseEmissaoEnvio arquivoEmissao, final String filename) throws Exception {
 
+    public NFSeSCSaoJoseEmissaoRetorno enviarEmissaoNFSe(final NFSeSCSaoJoseEmissaoEnvio arquivoEmissao, final String filename) throws Exception {
         this.getLogger().info("Request emissão NFSe com xml: {}", arquivoEmissao.toXml());
         final NFSeHttpResponse<String> response = this.sendMultipartRequest(arquivoEmissao.toXml(), filename);
         final String responseBody = StringUtils.trimToEmpty(response.body());
@@ -40,24 +40,6 @@ public class WSSaoJose implements NFSeLogger {
             registryMatcher.bind(BigDecimal.class, new NFSeBigDecimalTransformer());
             this.getLogger().info("NFSe emitida: {}", responseBody);
             return new NFSePersister(true, registryMatcher).read(NFSeSCSaoJoseEmissaoRetorno.class, responseBody);
-        final var client = HttpClient.newHttpClient();
-        try {
-            this.getLogger().info("Request emissão NFSe com xml: {}", arquivoEmissao.toXml());
-            final var response = client.send(this.buildRequest(arquivoEmissao.toXml(), filename), HttpResponse.BodyHandlers.ofString());
-            final var responseBody = StringUtils.trimToEmpty(response.body());
-            final var responseCode = response.statusCode();
-            if (responseCode != 200) {
-                throw new Exception("Emissão de NFSe retornou erro '%d'!".formatted(responseCode));
-            } else {
-                final var registryMatcher = new NFSeRegistryMatcher();
-                registryMatcher.bind(BigDecimal.class, new NFSeBigDecimalTransformer());
-                this.getLogger().info("NFSe emitida: {}", responseBody);
-                return new NFSePersister(true, registryMatcher).read(NFSeSCSaoJoseEmissaoRetorno.class, responseBody);
-            }
-        } finally {
-            if (client instanceof AutoCloseable closeable) {
-                closeable.close();
-            }
         }
     }
 
@@ -73,24 +55,6 @@ public class WSSaoJose implements NFSeLogger {
             registryMatcher.bind(BigDecimal.class, new NFSeBigDecimalTransformer());
             this.getLogger().info("NFSe cancelada: {}", responseBody);
             return new NFSePersister(true, registryMatcher).read(NFSeSCSaoJoseCancelamentoRetorno.class, responseBody);
-        final var client = HttpClient.newHttpClient();
-        try {
-            this.getLogger().info("Request cancelamento NFSe com xml: {}", arquivoCancelamento.toXml());
-            final var response = client.send(this.buildRequest(arquivoCancelamento.toXml(), filename), HttpResponse.BodyHandlers.ofString());
-            final var responseBody = StringUtils.trimToEmpty(response.body()); // Trim no body porque o webservice retorna espaços em branco antes do XML
-            final var responseCode = response.statusCode();
-            if (responseCode != 200) {
-                throw new Exception("Cancelamento de NFSe retornou erro '%d'!".formatted(responseCode));
-            } else {
-                final var registryMatcher = new NFSeRegistryMatcher();
-                registryMatcher.bind(BigDecimal.class, new NFSeBigDecimalTransformer());
-                this.getLogger().info("NFSe cancelada: {}", responseBody);
-                return new NFSePersister(true, registryMatcher).read(NFSeSCSaoJoseCancelamentoRetorno.class, responseBody);
-            }
-        } finally {
-            if (client instanceof AutoCloseable closeable) {
-                closeable.close();
-            }
         }
     }
 
@@ -106,24 +70,6 @@ public class WSSaoJose implements NFSeLogger {
             registryMatcher.bind(BigDecimal.class, new NFSeBigDecimalTransformer());
             this.getLogger().info("Solicitacao de cancelamento de NFSe registrada: {}", responseBody);
             return new NFSePersister(true, registryMatcher).read(NFSeSCSaoJoseCancelamentoRetorno.class, responseBody);
-        final var client = HttpClient.newHttpClient();
-        try {
-            this.getLogger().info("Request de solicitação de cancelamento NFSe com xml: {}", arquivoCancelamento.toXml());
-            final var response = client.send(this.buildRequest(arquivoCancelamento.toXml(), filename), HttpResponse.BodyHandlers.ofString());
-            final var responseBody = StringUtils.trimToEmpty(response.body());
-            final var responseCode = response.statusCode();
-            if (responseCode != 200) {
-                throw new Exception("Solicitação de cancelamento de NFSe retornou erro '%d'!".formatted(responseCode));
-            } else {
-                final var registryMatcher = new NFSeRegistryMatcher();
-                registryMatcher.bind(BigDecimal.class, new NFSeBigDecimalTransformer());
-                this.getLogger().info("Solicitacao de cancelamento de NFSe registrada: {}", responseBody);
-                return new NFSePersister(true, registryMatcher).read(NFSeSCSaoJoseCancelamentoRetorno.class, responseBody);
-            }
-        } finally {
-            if (client instanceof AutoCloseable closeable) {
-                closeable.close();
-            }
         }
     }
 
@@ -139,24 +85,6 @@ public class WSSaoJose implements NFSeLogger {
             registryMatcher.bind(BigDecimal.class, new NFSeBigDecimalTransformer());
             this.getLogger().info("NFSe localizada: {}", responseBody);
             return new NFSePersister(true, registryMatcher).read(NFSeSCSaoJosePesquisaCodigoAutenticidadeRetorno.class, responseBody);
-        final var client = HttpClient.newHttpClient();
-        try {
-            this.getLogger().info("Request de consulta de NFSe com xml: {}", arquivoPesquisa.toXml());
-            final var response = client.send(this.buildRequest(arquivoPesquisa.toXml(), filename), HttpResponse.BodyHandlers.ofString());
-            final var responseBody = StringUtils.trimToEmpty(response.body());
-            final var responseCode = response.statusCode();
-            if (responseCode != 200) {
-                throw new Exception("Consulta de NFSe por codigo de autenticidade retornou erro '%d'!".formatted(responseCode));
-            } else {
-                final var registryMatcher = new NFSeRegistryMatcher();
-                registryMatcher.bind(BigDecimal.class, new NFSeBigDecimalTransformer());
-                this.getLogger().info("NFSe localizada: {}", responseBody);
-                return new NFSePersister(true, registryMatcher).read(NFSeSCSaoJosePesquisaCodigoAutenticidadeRetorno.class, responseBody);
-            }
-        } finally {
-            if (client instanceof AutoCloseable closeable) {
-                closeable.close();
-            }
         }
     }
 

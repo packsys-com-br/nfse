@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -114,7 +115,7 @@ public class NFSeAdnDocumentoDistribuido {
      * @throws IOException Se o conteúdo estiver corrompido, seja no base64 ou no gzip.
      */
     public String getXml() throws IOException {
-        if (this.arquivoXml == null || this.arquivoXml.isBlank()) {
+        if (this.arquivoXml == null || this.arquivoXml.trim().isEmpty()) {
             return null;
         }
         final byte[] conteudo;
@@ -122,13 +123,19 @@ public class NFSeAdnDocumentoDistribuido {
             conteudo = Base64.getDecoder().decode(this.arquivoXml);
         } catch (final IllegalArgumentException e) {
             //conteúdo corrompido sai como IOException, para não escapar do que o contrato declara
-            throw new IOException("Conteúdo de 'ArquivoXml' do NSU '%s' não é um base64 válido!".formatted(this.nsu), e);
+            throw new IOException(String.format("Conteúdo de 'ArquivoXml' do NSU '%s' não é um base64 válido!", this.nsu), e);
         }
         if (conteudo.length < 2 || (conteudo[0] & 0xFF) != 0x1F || (conteudo[1] & 0xFF) != 0x8B) {
             return new String(conteudo, StandardCharsets.UTF_8);
         }
-        try (final GZIPInputStream gzip = new GZIPInputStream(new ByteArrayInputStream(conteudo))) {
-            return new String(gzip.readAllBytes(), StandardCharsets.UTF_8);
+        try (final GZIPInputStream gzip = new GZIPInputStream(new ByteArrayInputStream(conteudo));
+             final ByteArrayOutputStream descompactado = new ByteArrayOutputStream()) {
+            final byte[] buffer = new byte[8192];
+            int lidos;
+            while ((lidos = gzip.read(buffer)) != -1) {
+                descompactado.write(buffer, 0, lidos);
+            }
+            return new String(descompactado.toByteArray(), StandardCharsets.UTF_8);
         }
     }
 

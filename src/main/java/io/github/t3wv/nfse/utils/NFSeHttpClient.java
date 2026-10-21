@@ -23,7 +23,6 @@ import java.util.Map;
 public class NFSeHttpClient implements NFSeLogger {
 
     public static final String PROTOCOL = "TLSv1.2";
-    private static final int TIMEOUT_MILLIS = 30000;
 
     private final NFSeConfig config;
 
@@ -52,17 +51,9 @@ public class NFSeHttpClient implements NFSeLogger {
      */
     public NFSeHttpResponse<byte[]> sendGetRequestAsBytes(final URI uri) throws Exception {
         this.getLogger().debug("Realizando GET em: {}", uri.toString());
-        final HttpsURLConnection connection = this.openConnection(uri, "GET");
+        final HttpsURLConnection connection = this.openConnection(uri, "GET", config.getHttpGetTimeoutSegundos());
         connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
         return this.execute(connection);
-        final var httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).followRedirects(HttpClient.Redirect.NORMAL).sslContext(this.getSslContext()).build();
-        try {
-            return httpClient.send(HttpRequest.newBuilder().GET().uri(uri).headers("Content-Type", "application/json; charset=utf-8").timeout(Duration.ofSeconds(config.getHttpGetTimeoutSegundos())).build(), responseBodyHandler);
-        } finally {
-            if (httpClient instanceof AutoCloseable closeable) {
-                closeable.close();
-            }
-        }
     }
 
     public NFSeHttpResponse<String> sendPostRequest(final URI uri, final String body) throws Exception {
@@ -71,7 +62,7 @@ public class NFSeHttpClient implements NFSeLogger {
 
     public NFSeHttpResponse<String> sendPostRequest(final URI uri, final Map<String, String> headers, final String body) throws Exception {
         this.getLogger().debug("Realizando POST em: {}", uri.toString());
-        final HttpsURLConnection connection = this.openConnection(uri, "POST");
+        final HttpsURLConnection connection = this.openConnection(uri, "POST", config.getHttpPostTimeoutSegundos());
         for (final Map.Entry<String, String> header : headers.entrySet()) {
             connection.setRequestProperty(header.getKey(), header.getValue());
         }
@@ -83,13 +74,13 @@ public class NFSeHttpClient implements NFSeLogger {
         return new NFSeHttpResponse<String>(response.statusCode(), new String(response.body(), StandardCharsets.UTF_8));
     }
 
-    private HttpsURLConnection openConnection(final URI uri, final String method) throws Exception {
+    private HttpsURLConnection openConnection(final URI uri, final String method, final int timeoutSegundos) throws Exception {
         final URL url = uri.toURL();
         final HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
         connection.setRequestMethod(method);
         connection.setSSLSocketFactory(this.getSslContext().getSocketFactory());
-        connection.setConnectTimeout(TIMEOUT_MILLIS);
-        connection.setReadTimeout(TIMEOUT_MILLIS);
+        connection.setConnectTimeout(timeoutSegundos * 1000);
+        connection.setReadTimeout(timeoutSegundos * 1000);
         connection.setInstanceFollowRedirects(true);
         return connection;
     }
@@ -109,13 +100,6 @@ public class NFSeHttpClient implements NFSeLogger {
                 baos.write(buffer, 0, read);
             }
             return baos.toByteArray();
-        final var httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).followRedirects(HttpClient.Redirect.NORMAL).sslContext(this.getSslContext()).build();
-        try {
-            return httpClient.send(HttpRequest.newBuilder().POST(HttpRequest.BodyPublishers.ofString(body)).headers(headers.entrySet().stream().flatMap(entry -> Stream.of(entry.getKey(), entry.getValue())).toArray(String[]::new)).timeout(Duration.ofSeconds(config.getHttpPostTimeoutSegundos())).uri(uri).build(), HttpResponse.BodyHandlers.ofString());
-        } finally {
-            if (httpClient instanceof AutoCloseable closeable) {
-                closeable.close();
-            }
         }
     }
 

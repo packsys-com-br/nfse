@@ -10,6 +10,7 @@ import io.github.t3wv.nfse.nacional.WSSefinNFSe;
 import io.github.t3wv.nfse.nacional.classes.nfsenacional.*;
 import io.github.t3wv.nfse.nacional.classes.parametrosmunicipais.consulta.*;
 import io.github.t3wv.nfse.utils.NFSeCadeiaCertificadosTest;
+import io.github.t3wv.nfse.nacional.classes.adn.NFSeAdnLoteDistribuicaoResponse;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -129,21 +130,21 @@ public class NFSeNacionalTest implements NFSeLogger {
     @Disabled
     @Test
     public void testeDistribuicaoDFePorNsu() throws Exception {
-        final var ws = new WSDistribuicaoDFe(config);
-        final var maximoDePaginas = 100;
+        final WSDistribuicaoDFe ws = new WSDistribuicaoDFe(config);
+        final int maximoDePaginas = 100;
 
         long nsu = 0;
         long ultimoNsuProcessado = -1;
         for (int pagina = 0; pagina < maximoDePaginas; pagina++) {
-            final var lote = ws.distribuirDFe(nsu);
+            final NFSeAdnLoteDistribuicaoResponse lote = ws.distribuirDFe(nsu);
             getLogger().info("NSU {}: {}", nsu, lote);
             if (lote.vazio()) {
                 break;
             }
-            Assertions.assertTrue(lote.temDocumentos(), "lote sem documentos e sem NENHUM_DOCUMENTO_LOCALIZADO: %s".formatted(lote.getErros()));
+            Assertions.assertTrue(lote.temDocumentos(), String.format("lote sem documentos e sem NENHUM_DOCUMENTO_LOCALIZADO: %s", lote.getErros()));
 
             final long maiorNsu = lote.getMaiorNsu().orElse(-1);
-            Assertions.assertTrue(maiorNsu > ultimoNsuProcessado, "o lote não avançou o NSU: %d".formatted(maiorNsu));
+            Assertions.assertTrue(maiorNsu > ultimoNsuProcessado, String.format("o lote não avançou o NSU: %d", maiorNsu));
 
             lote.getLoteDFe().forEach(documento -> getLogger().info("{} -> {}", documento, documento.getChaveAcesso()));
             ultimoNsuProcessado = maiorNsu;
@@ -154,7 +155,7 @@ public class NFSeNacionalTest implements NFSeLogger {
     @Disabled
     @Test
     public void testeConsultaEventosPorChaveAcessoNoAdn() throws Exception {
-        final var chaveAcesso = ""; //chave de acesso da NFSe com 50 dígitos
+        final String chaveAcesso = ""; //chave de acesso da NFSe com 50 dígitos
         getLogger().info(new WSDistribuicaoDFe(config).consultarEventosPorChaveAcesso(chaveAcesso).toString());
     }
 }
