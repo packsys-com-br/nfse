@@ -95,6 +95,15 @@ public class WSSefinNFSe implements NFSeLogger {
             default:
                 throw new IllegalStateException(String.format("Consulta de NFSe '%s' retornou erro '%d'!", chaveAcessoNormalizada, response.statusCode()));
         }
+        final var url = new URI(String.format("%s/%s", config.isTeste() ? URL_HOMOLOGACAO_NFSE : URL_PRODUCAO_NFSE, chaveAcesso));
+        final var response = new NFSeHttpClient(config).sendGetRequest(url);
+        this.getLogger().info("Response status code: {}", response.statusCode());
+        this.getLogger().debug("Response status code: {} - {}", response.statusCode(), response.body());
+        return switch (response.statusCode()) {
+            case HttpURLConnection.HTTP_OK -> new AbstractMap.SimpleEntry<>(HttpURLConnection.HTTP_OK, this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalGetResponse.class));
+            case HttpURLConnection.HTTP_BAD_REQUEST, HttpURLConnection.HTTP_UNAUTHORIZED, HttpURLConnection.HTTP_FORBIDDEN, HttpURLConnection.HTTP_NOT_FOUND -> new AbstractMap.SimpleEntry<>(response.statusCode(), this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalResponseErro.class));
+            default -> throw new IllegalStateException("Consulta de NFSe '%s' retornou erro '%d'!".formatted(chaveAcessoNormalizada, response.statusCode()));
+        };
     }
 
     /**
@@ -187,6 +196,14 @@ public class WSSefinNFSe implements NFSeLogger {
             case HttpURLConnection.HTTP_UNAUTHORIZED:
             case HttpURLConnection.HTTP_FORBIDDEN:
             case HttpURLConnection.HTTP_NOT_FOUND:
+        final var uri = new URI(String.format("%s", config.isTeste() ? URL_HOMOLOGACAO_NFSE : URL_PRODUCAO_NFSE));
+        final var body = String.format("{dpsXmlGZipB64:\"%s\"}", Base64.getEncoder().encodeToString(gzipped));
+        final var response = new NFSeHttpClient(config).sendPostRequest(uri, body);
+        this.getLogger().info("Response emissão by DPS status code: {}", response.statusCode());
+        this.getLogger().debug("Response emissão by DPS status code: {} - {}", response.statusCode(), response.body());
+        return switch (response.statusCode()) {
+            case HttpURLConnection.HTTP_CREATED -> new AbstractMap.SimpleEntry<>(HttpURLConnection.HTTP_CREATED, this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalNFSePostResponseSucesso.class));
+            case HttpURLConnection.HTTP_BAD_REQUEST, HttpURLConnection.HTTP_UNAUTHORIZED, HttpURLConnection.HTTP_FORBIDDEN, HttpURLConnection.HTTP_NOT_FOUND -> {
                 try {
                     return new AbstractMap.SimpleEntry<>(HttpURLConnection.HTTP_BAD_REQUEST, this.objectMapper.convertValue(this.objectMapper.readTree(response.body()), NFSeSefinNacionalNFSePostResponseErro.class));
                 } catch (Exception e) {
