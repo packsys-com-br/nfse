@@ -8,6 +8,8 @@ import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,13 +33,39 @@ final class DanfseFormatador {
     private static final String TELEFONE_BRASILEIRO = "[1-9]{2}([2-9]\\d{7}|9\\d{8})";
 
     /** Sigla da UF pelos dois primeiros dígitos do código de município do IBGE. */
-    private static final Map<String, String> UF_POR_CODIGO_IBGE = Map.ofEntries(
-            Map.entry("11", "RO"), Map.entry("12", "AC"), Map.entry("13", "AM"), Map.entry("14", "RR"), Map.entry("15", "PA"),
-            Map.entry("16", "AP"), Map.entry("17", "TO"), Map.entry("21", "MA"), Map.entry("22", "PI"), Map.entry("23", "CE"),
-            Map.entry("24", "RN"), Map.entry("25", "PB"), Map.entry("26", "PE"), Map.entry("27", "AL"), Map.entry("28", "SE"),
-            Map.entry("29", "BA"), Map.entry("31", "MG"), Map.entry("32", "ES"), Map.entry("33", "RJ"), Map.entry("35", "SP"),
-            Map.entry("41", "PR"), Map.entry("42", "SC"), Map.entry("43", "RS"), Map.entry("50", "MS"), Map.entry("51", "MT"),
-            Map.entry("52", "GO"), Map.entry("53", "DF"));
+    private static final Map<String, String> UF_POR_CODIGO_IBGE = criarUfPorCodigoIbge();
+
+    private static Map<String, String> criarUfPorCodigoIbge() {
+        final Map<String, String> mapa = new HashMap<>();
+        mapa.put("11", "RO");
+        mapa.put("12", "AC");
+        mapa.put("13", "AM");
+        mapa.put("14", "RR");
+        mapa.put("15", "PA");
+        mapa.put("16", "AP");
+        mapa.put("17", "TO");
+        mapa.put("21", "MA");
+        mapa.put("22", "PI");
+        mapa.put("23", "CE");
+        mapa.put("24", "RN");
+        mapa.put("25", "PB");
+        mapa.put("26", "PE");
+        mapa.put("27", "AL");
+        mapa.put("28", "SE");
+        mapa.put("29", "BA");
+        mapa.put("31", "MG");
+        mapa.put("32", "ES");
+        mapa.put("33", "RJ");
+        mapa.put("35", "SP");
+        mapa.put("41", "PR");
+        mapa.put("42", "SC");
+        mapa.put("43", "RS");
+        mapa.put("50", "MS");
+        mapa.put("51", "MT");
+        mapa.put("52", "GO");
+        mapa.put("53", "DF");
+        return Collections.unmodifiableMap(mapa);
+    }
 
     /**
      * Classe utilitária, não deve ser instanciada.
@@ -56,7 +84,7 @@ final class DanfseFormatador {
         if (texto == null) {
             return "";
         }
-        final var resultado = new StringBuilder();
+        final StringBuilder resultado = new StringBuilder();
         texto.codePoints().forEach(codigo -> resultado.appendCodePoint(Character.isISOControl(codigo) || Character.isWhitespace(codigo) ? ' ' : codigo));
         return resultado.toString().replaceAll(" {2,}", " ").trim();
     }
@@ -66,7 +94,7 @@ final class DanfseFormatador {
      * @return o texto, ou um traço quando vazio (nota 12)
      */
     static String ouTraco(final String texto) {
-        final var normalizado = texto(texto);
+        final String normalizado = texto(texto);
         return normalizado.isEmpty() ? SEM_INFORMACAO : normalizado;
     }
 
@@ -78,7 +106,7 @@ final class DanfseFormatador {
      * @return o texto inteiro, se couber, ou os primeiros {@code maximo - 3} caracteres seguidos de reticências
      */
     static String limitar(final String texto, final int maximo) {
-        final var normalizado = texto(texto);
+        final String normalizado = texto(texto);
         if (normalizado.length() <= maximo) {
             return normalizado;
         }
@@ -111,7 +139,7 @@ final class DanfseFormatador {
      * @return documento formatado
      */
     static String cnpjOuCpf(final String valor) {
-        final var documento = texto(valor);
+        final String documento = texto(valor);
         if (documento.matches("[0-9A-Z]{12}\\d{2}")) {
             return documento.replaceAll("(.{2})(.{3})(.{3})(.{4})(.{2})", "$1.$2.$3/$4-$5");
         }
@@ -131,7 +159,7 @@ final class DanfseFormatador {
      * @return documento formatado (até 40 caracteres), ou um traço
      */
     static String documento(final String valor) {
-        final var documento = texto(valor);
+        final String documento = texto(valor);
         if (cnpjValido(documento) || cpfValido(documento)) {
             return cnpjOuCpf(documento);
         }
@@ -142,8 +170,8 @@ final class DanfseFormatador {
         if (!valor.matches("[0-9A-Z]{12}\\d{2}") || valor.chars().distinct().count() == 1) {
             return false;
         }
-        final var primeiro = digitoVerificador(valor.substring(0, 12), 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2);
-        final var segundo = digitoVerificador(valor.substring(0, 12) + primeiro, 6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2);
+        final int primeiro = digitoVerificador(valor.substring(0, 12), 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2);
+        final int segundo = digitoVerificador(valor.substring(0, 12) + primeiro, 6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2);
         return valor.endsWith("" + primeiro + segundo);
     }
 
@@ -151,8 +179,8 @@ final class DanfseFormatador {
         if (!valor.matches("\\d{11}") || valor.chars().distinct().count() == 1) {
             return false;
         }
-        final var primeiro = digitoVerificador(valor.substring(0, 9), 10, 9, 8, 7, 6, 5, 4, 3, 2);
-        final var segundo = digitoVerificador(valor.substring(0, 9) + primeiro, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2);
+        final int primeiro = digitoVerificador(valor.substring(0, 9), 10, 9, 8, 7, 6, 5, 4, 3, 2);
+        final int segundo = digitoVerificador(valor.substring(0, 9) + primeiro, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2);
         return valor.endsWith("" + primeiro + segundo);
     }
 
@@ -165,7 +193,7 @@ final class DanfseFormatador {
         for (int i = 0; i < pesos.length; i++) {
             soma += (base.charAt(i) - '0') * pesos[i];
         }
-        final var resto = soma % 11;
+        final int resto = soma % 11;
         return resto < 2 ? 0 : 11 - resto;
     }
 
@@ -176,7 +204,7 @@ final class DanfseFormatador {
      * @return CEP formatado
      */
     static String cep(final String cep) {
-        final var valor = texto(cep);
+        final String valor = texto(cep);
         return valor.matches("\\d{8}") ? valor.replaceAll("(\\d{2})(\\d{3})(\\d{3})", "$1.$2-$3") : valor;
     }
 
@@ -188,8 +216,8 @@ final class DanfseFormatador {
      * @return telefone formatado, ou um traço
      */
     static String telefone(final String telefone) {
-        final var valor = texto(telefone);
-        final var numero = valor.matches("55" + TELEFONE_BRASILEIRO) ? valor.substring(2) : valor;
+        final String valor = texto(telefone);
+        final String numero = valor.matches("55" + TELEFONE_BRASILEIRO) ? valor.substring(2) : valor;
         return ouTraco(numero.matches(TELEFONE_BRASILEIRO) ? numero.replaceAll("(\\d{2})(\\d{4,5})(\\d{4})", "($1) $2-$3") : limitar(valor, 20));
     }
 
@@ -200,7 +228,7 @@ final class DanfseFormatador {
      * @return código formatado
      */
     static String codigoTributacaoNacional(final String codigo) {
-        final var valor = texto(codigo);
+        final String valor = texto(codigo);
         return valor.matches("\\d{6}") ? valor.replaceAll("(\\d{2})(\\d{2})(\\d{2})", "$1.$2.$3") : valor;
     }
 
@@ -211,7 +239,7 @@ final class DanfseFormatador {
      * @return código formatado, ou um traço
      */
     static String nbs(final String codigo) {
-        final var valor = texto(codigo);
+        final String valor = texto(codigo);
         return ouTraco(valor.matches("\\d{9}") ? valor.replaceAll("(\\d)(\\d{4})(\\d{2})(\\d{2})", "$1.$2.$3.$4") : valor);
     }
 
@@ -220,7 +248,7 @@ final class DanfseFormatador {
      * @return sigla da UF, ou string vazia se o código não for de um município brasileiro
      */
     static String uf(final String codigoMunicipio) {
-        final var codigo = texto(codigoMunicipio);
+        final String codigo = texto(codigoMunicipio);
         return codigo.matches("\\d{7}") ? UF_POR_CODIGO_IBGE.getOrDefault(codigo.substring(0, 2), "") : "";
     }
 
@@ -229,7 +257,7 @@ final class DanfseFormatador {
      * @return chave de acesso com 50 dígitos, sem o prefixo "NFS" (item 2.4.5)
      */
     static String chaveAcesso(final String id) {
-        final var valor = texto(id);
+        final String valor = texto(id);
         return valor.startsWith("NFS") ? valor.substring(3) : valor;
     }
 
@@ -254,7 +282,7 @@ final class DanfseFormatador {
     }
 
     private static String numero(final BigDecimal valor) {
-        final var formato = new DecimalFormat("#,##0.00", DecimalFormatSymbols.getInstance(PT_BR));
+        final DecimalFormat formato = new DecimalFormat("#,##0.00", DecimalFormatSymbols.getInstance(PT_BR));
         return formato.format(valor.setScale(Math.max(2, valor.scale()), RoundingMode.HALF_EVEN));
     }
 
@@ -279,7 +307,7 @@ final class DanfseFormatador {
      * @return o texto com a primeira letra maiúscula (o leiaute descreve o emitente intermediário em minúsculas)
      */
     static String primeiraMaiuscula(final String texto) {
-        final var valor = texto(texto);
+        final String valor = texto(texto);
         return valor.isEmpty() ? valor : valor.substring(0, 1).toUpperCase(PT_BR) + valor.substring(1);
     }
 }

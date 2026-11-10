@@ -25,6 +25,7 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
+import com.google.zxing.common.BitMatrix;
 
 /**
  * Primitivas de desenho do DANFSe sobre o PDFBox: campos com rótulo, texto com quebra e reticências, linhas, sombreamento,
@@ -154,7 +155,7 @@ final class DanfseCanvas {
      * @return texto que a fonte consegue desenhar
      */
     private static String limpar(final String texto) {
-        final var resultado = new StringBuilder();
+        final StringBuilder resultado = new StringBuilder();
         if (texto != null) {
             texto.codePoints().forEach(codigo -> resultado.appendCodePoint(Character.isISOControl(codigo) ? ' '
                     : WinAnsiEncoding.INSTANCE.contains(GlyphList.getAdobeGlyphList().codePointToName(codigo)) ? codigo : '?'));
@@ -190,8 +191,8 @@ final class DanfseCanvas {
      * @return o texto inteiro, se couber, ou o começo dele seguido de reticências
      */
     String caber(final String texto, final float largura, final float tamanhoFonte, final boolean emNegrito) {
-        final var fonteDoTexto = emNegrito ? this.negrito : this.fonte;
-        final var limpo = limpar(texto);
+        final PDFont fonteDoTexto = emNegrito ? this.negrito : this.fonte;
+        final String limpo = limpar(texto);
         if (larguraNaFonte(fonteDoTexto, limpo, tamanhoFonte) <= largura) {
             return limpo;
         }
@@ -202,7 +203,7 @@ final class DanfseCanvas {
      * Corta o fim do texto até ele caber na largura seguido de reticências.
      */
     private static String comReticencias(final PDFont fonteDoTexto, final String texto, final float largura, final float tamanhoFonte) {
-        var corte = texto.length();
+        int corte = texto.length();
         while (corte > 0 && larguraNaFonte(fonteDoTexto, DanfseFormatador.semSeparadorNoFim(texto.substring(0, corte)) + RETICENCIAS, tamanhoFonte) > largura) {
             corte--;
         }
@@ -222,7 +223,7 @@ final class DanfseCanvas {
     List<String> cortarLinhas(final List<String> linhas, final int quantidade, final float largura, final float tamanhoFonte) {
         final List<String> mantidas = new ArrayList<>(linhas.subList(0, Math.min(quantidade, linhas.size())));
         if (!mantidas.isEmpty() && mantidas.size() < linhas.size()) {
-            final var ultima = mantidas.size() - 1;
+            final int ultima = mantidas.size() - 1;
             mantidas.set(ultima, comReticencias(this.fonte, mantidas.get(ultima), largura, tamanhoFonte));
         }
         return mantidas;
@@ -238,9 +239,9 @@ final class DanfseCanvas {
      * @return linhas que cabem na largura (pelo menos uma)
      */
     List<String> quebrar(final String texto, final float largura, final float tamanhoFonte, final boolean emNegrito) {
-        final var fonteDoTexto = emNegrito ? this.negrito : this.fonte;
+        final PDFont fonteDoTexto = emNegrito ? this.negrito : this.fonte;
         final List<String> linhas = new ArrayList<>();
-        for (final var paragrafo : (texto == null ? "" : texto).split("\r?\n", -1)) {
+        for (final String paragrafo : (texto == null ? "" : texto).split("\r?\n", -1)) {
             quebrarParagrafo(fonteDoTexto, limpar(paragrafo), largura, tamanhoFonte, linhas);
         }
         return linhas;
@@ -250,12 +251,12 @@ final class DanfseCanvas {
      * Quebra um parágrafo (sem quebras de linha) e acrescenta as linhas resultantes à lista.
      */
     private static void quebrarParagrafo(final PDFont fonteDoTexto, final String paragrafo, final float largura, final float tamanhoFonte, final List<String> linhas) {
-        var atual = new StringBuilder();
-        for (final var palavra : paragrafo.split(" ")) {
+        StringBuilder atual = new StringBuilder();
+        for (final String palavra : paragrafo.split(" ")) {
             if (palavra.isEmpty()) {
                 continue;
             }
-            final var candidato = atual.length() == 0 ? palavra : atual + " " + palavra;
+            final String candidato = atual.length() == 0 ? palavra : atual + " " + palavra;
             if (larguraNaFonte(fonteDoTexto, candidato, tamanhoFonte) <= largura) {
                 atual = new StringBuilder(candidato);
                 continue;
@@ -268,7 +269,7 @@ final class DanfseCanvas {
                 atual.append(palavra);
                 continue;
             }
-            for (final var c : palavra.toCharArray()) {
+            for (final char c : palavra.toCharArray()) {
                 if (atual.length() > 0 && larguraNaFonte(fonteDoTexto, atual.toString() + c, tamanhoFonte) > largura) {
                     linhas.add(atual.toString());
                     atual = new StringBuilder();
@@ -293,10 +294,10 @@ final class DanfseCanvas {
      */
     void texto(final float x, final float base, final float largura, final String texto, final float tamanhoFonte, final boolean emNegrito,
                final Alinhamento alinhamento, final PDColor cor) {
-        final var fonteDoTexto = emNegrito ? this.negrito : this.fonte;
-        final var ajustado = caber(texto, largura, tamanhoFonte, emNegrito);
-        final var sobra = Math.max(0f, largura - larguraNaFonte(fonteDoTexto, ajustado, tamanhoFonte));
-        final var deslocamento = alinhamento == Alinhamento.DIREITA ? sobra : alinhamento == Alinhamento.CENTRO ? sobra / 2 : 0;
+        final PDFont fonteDoTexto = emNegrito ? this.negrito : this.fonte;
+        final String ajustado = caber(texto, largura, tamanhoFonte, emNegrito);
+        final float sobra = Math.max(0f, largura - larguraNaFonte(fonteDoTexto, ajustado, tamanhoFonte));
+        final float deslocamento = alinhamento == Alinhamento.DIREITA ? sobra : alinhamento == Alinhamento.CENTRO ? sobra / 2 : 0;
         escrever(fonteDoTexto, tamanhoFonte, cor, ESQUERDA + x + deslocamento, this.y + base, ajustado);
     }
 
@@ -329,7 +330,7 @@ final class DanfseCanvas {
      * @return largura das colunas (5,09, 10,19 ou 20,40 cm), em pontos
      */
     static float larguraColunas(final int inicio, final int quantidade) {
-        final var fim = inicio + quantidade >= COLUNAS.length ? LARGURA + ESPACO_COLUNAS : COLUNAS[inicio + quantidade];
+        final float fim = inicio + quantidade >= COLUNAS.length ? LARGURA + ESPACO_COLUNAS : COLUNAS[inicio + quantidade];
         return fim - COLUNAS[inicio] - ESPACO_COLUNAS;
     }
 
@@ -373,9 +374,9 @@ final class DanfseCanvas {
      * @param valor conteúdo do campo
      */
     void campo(final int coluna, final int colunas, final String rotulo, final float tamanhoRotulo, final String valor) {
-        final var x = coluna(coluna) + RECUO;
-        final var largura = larguraColunas(coluna, colunas) - 2 * RECUO;
-        final var baseRotulo = 1.5f + tamanhoRotulo * 0.72f;
+        final float x = coluna(coluna) + RECUO;
+        final float largura = larguraColunas(coluna, colunas) - 2 * RECUO;
+        final float baseRotulo = 1.5f + tamanhoRotulo * 0.72f;
         texto(x, baseRotulo, largura, rotulo, tamanhoRotulo, true, Alinhamento.ESQUERDA, PRETO);
         texto(x, baseRotulo + 1.5f + TAMANHO_CONTEUDO, largura, valor, TAMANHO_CONTEUDO, false, Alinhamento.ESQUERDA, PRETO);
     }
@@ -392,11 +393,11 @@ final class DanfseCanvas {
      * @return quantidade de linhas ocupadas pelo conteúdo
      */
     int campo(final int coluna, final int colunas, final String rotulo, final String valor, final int maximoLinhas) {
-        final var x = coluna(coluna) + RECUO;
-        final var largura = larguraColunas(coluna, colunas) - 2 * RECUO;
-        final var baseRotulo = 1.5f + TAMANHO_ROTULO * 0.72f;
+        final float x = coluna(coluna) + RECUO;
+        final float largura = larguraColunas(coluna, colunas) - 2 * RECUO;
+        final float baseRotulo = 1.5f + TAMANHO_ROTULO * 0.72f;
         texto(x, baseRotulo, largura, rotulo, TAMANHO_ROTULO, true, Alinhamento.ESQUERDA, PRETO);
-        final var linhas = cortarLinhas(quebrar(valor, largura, TAMANHO_CONTEUDO, false), maximoLinhas, largura, TAMANHO_CONTEUDO);
+        final List<String> linhas = cortarLinhas(quebrar(valor, largura, TAMANHO_CONTEUDO, false), maximoLinhas, largura, TAMANHO_CONTEUDO);
         linhas(x, baseRotulo + 1.5f + TAMANHO_CONTEUDO, largura, linhas, TAMANHO_CONTEUDO);
         return linhas.size();
     }
@@ -498,8 +499,8 @@ final class DanfseCanvas {
      * Desenha a borda de 1 ponto da página (item 2.2.3), entre 0,15 cm e 0,20 cm da beira do papel (item 2.2.2).
      */
     void bordaDaPagina() {
-        final var largura = this.pagina.getMediaBox().getWidth() - 2 * MARGEM_BORDA;
-        final var altura = this.pagina.getMediaBox().getHeight() - 2 * MARGEM_BORDA;
+        final float largura = this.pagina.getMediaBox().getWidth() - 2 * MARGEM_BORDA;
+        final float altura = this.pagina.getMediaBox().getHeight() - 2 * MARGEM_BORDA;
         contorno(MARGEM_BORDA, MARGEM_BORDA, largura, altura, ESPESSURA_BORDA);
     }
 
@@ -513,11 +514,11 @@ final class DanfseCanvas {
      */
     void qrCode(final float x, final float tamanho, final String texto) {
         try {
-            final var parametros = new EnumMap<EncodeHintType, Object>(EncodeHintType.class);
+            final EnumMap<EncodeHintType, Object> parametros = new EnumMap<EncodeHintType, Object>(EncodeHintType.class);
             parametros.put(EncodeHintType.MARGIN, 0);
             parametros.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M);
-            final var matriz = new QRCodeWriter().encode(texto, BarcodeFormat.QR_CODE, 0, 0, parametros);
-            final var modulo = tamanho / matriz.getWidth();
+            final BitMatrix matriz = new QRCodeWriter().encode(texto, BarcodeFormat.QR_CODE, 0, 0, parametros);
+            final float modulo = tamanho / matriz.getWidth();
             this.conteudo.setNonStrokingColor(PRETO);
             for (int linha = 0; linha < matriz.getHeight(); linha++) {
                 for (int coluna = 0; coluna < matriz.getWidth(); coluna++) {
@@ -542,10 +543,10 @@ final class DanfseCanvas {
      */
     void imagem(final float x, final float largura, final float altura, final byte[] imagem) {
         try {
-            final var figura = PDImageXObject.createFromByteArray(this.documento, imagem, "logo");
-            final var escala = Math.min(largura / figura.getWidth(), altura / figura.getHeight());
-            final var w = figura.getWidth() * escala;
-            final var h = figura.getHeight() * escala;
+            final PDImageXObject figura = PDImageXObject.createFromByteArray(this.documento, imagem, "logo");
+            final float escala = Math.min(largura / figura.getWidth(), altura / figura.getHeight());
+            final float w = figura.getWidth() * escala;
+            final float h = figura.getHeight() * escala;
             this.conteudo.drawImage(figura, ESQUERDA + x + (largura - w) / 2, base(this.y + altura - (altura - h) / 2), w, h);
         } catch (final IOException e) {
             throw new UncheckedIOException(e);
@@ -580,16 +581,16 @@ final class DanfseCanvas {
      * escurece só o papel: o texto em preto continua legível por baixo dela.
      */
     private void desenharMarcaDagua() throws IOException {
-        final var texto = limpar(this.marcaDagua);
-        final var larguraPagina = this.pagina.getMediaBox().getWidth();
-        final var alturaPagina = this.pagina.getMediaBox().getHeight();
-        final var largura = larguraNaFonte(this.fonte, texto, TAMANHO_MARCA_DAGUA);
-        final var angulo = Math.atan2(alturaPagina, larguraPagina);
+        final String texto = limpar(this.marcaDagua);
+        final float larguraPagina = this.pagina.getMediaBox().getWidth();
+        final float alturaPagina = this.pagina.getMediaBox().getHeight();
+        final float largura = larguraNaFonte(this.fonte, texto, TAMANHO_MARCA_DAGUA);
+        final double angulo = Math.atan2(alturaPagina, larguraPagina);
         // centraliza a linha de base deslocada de meia altura das maiusculas, para o texto ficar no centro da pagina
-        final var meiaAltura = TAMANHO_MARCA_DAGUA * 0.35;
-        final var mistura = new PDExtendedGraphicsState();
+        final double meiaAltura = TAMANHO_MARCA_DAGUA * 0.35;
+        final PDExtendedGraphicsState mistura = new PDExtendedGraphicsState();
         mistura.setBlendMode(BlendMode.MULTIPLY);
-        try (final var fluxo = new PDPageContentStream(this.documento, this.pagina, PDPageContentStream.AppendMode.APPEND, true, true)) {
+        try (final PDPageContentStream fluxo = new PDPageContentStream(this.documento, this.pagina, PDPageContentStream.AppendMode.APPEND, true, true)) {
             fluxo.setGraphicsStateParameters(mistura);
             fluxo.setNonStrokingColor(CINZA_MARCA_DAGUA);
             fluxo.beginText();

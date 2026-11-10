@@ -13,6 +13,7 @@ import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalTribTo
 
 import java.util.HashMap;
 import java.util.Map;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfoValores;
 
 /**
  * Acesso aos grupos da NFS-e usados pelo DANFSe, com os grupos opcionais podendo ser nulos.
@@ -31,8 +32,8 @@ final class DanfseNota {
      */
     DanfseNota(final NFSeSefinNacionalNFSe nfse) {
         this.nfse = nfse;
-        final var inf = inf();
-        final var dps = dps();
+        final NFSeSefinNacionalInfNFSe inf = inf();
+        final NFSeSefinNacionalInfDPS dps = dps();
         // xLocEmi descreve o cLocEmi, e nao o municipio do endereco do emitente, que pode ser outro
         conhecer(dps.getCodigoMunicipioEmissao(), inf.getLocalEmissao());
         if (dps.getServicoPrestado() != null && dps.getServicoPrestado().getLocalPrestacao() != null) {
@@ -45,8 +46,8 @@ final class DanfseNota {
     }
 
     private void conhecer(final String codigo, final String nome) {
-        final var codigoNormalizado = DanfseFormatador.texto(codigo);
-        final var nomeNormalizado = DanfseFormatador.texto(nome);
+        final String codigoNormalizado = DanfseFormatador.texto(codigo);
+        final String nomeNormalizado = DanfseFormatador.texto(nome);
         if (!codigoNormalizado.isEmpty() && !nomeNormalizado.isEmpty()) {
             this.municipios.putIfAbsent(codigoNormalizado, nomeNormalizado);
         }
@@ -67,11 +68,11 @@ final class DanfseNota {
      * @return "Nome / UF", "código / UF" ou um traço
      */
     String municipioUf(final String codigoMunicipio) {
-        final var codigo = DanfseFormatador.texto(codigoMunicipio);
+        final String codigo = DanfseFormatador.texto(codigoMunicipio);
         if (codigo.isEmpty()) {
             return DanfseFormatador.SEM_INFORMACAO;
         }
-        final var nome = nomeMunicipio(codigo);
+        final String nome = nomeMunicipio(codigo);
         return DanfseFormatador.juntar(" / ", nome == null ? codigo : nome, DanfseFormatador.uf(codigo));
     }
 
@@ -113,12 +114,12 @@ final class DanfseNota {
     }
 
     NFSeSefinNacionalTribMunicipal tribMun() {
-        final var valores = dps().getValores();
+        final NFSeSefinNacionalInfoValores valores = dps().getValores();
         return valores == null || valores.getTributos() == null ? null : valores.getTributos().getTributosMunicipais();
     }
 
     NFSeSefinNacionalTribFederal tribFed() {
-        final var valores = dps().getValores();
+        final NFSeSefinNacionalInfoValores valores = dps().getValores();
         return valores == null || valores.getTributos() == null ? null : valores.getTributos().getTributosNacionais();
     }
 
@@ -127,7 +128,7 @@ final class DanfseNota {
     }
 
     NFSeSefinNacionalTribTotal totTrib() {
-        final var valores = dps().getValores();
+        final NFSeSefinNacionalInfoValores valores = dps().getValores();
         return valores == null || valores.getTributos() == null ? null : valores.getTributos().getTotalTributos();
     }
 }

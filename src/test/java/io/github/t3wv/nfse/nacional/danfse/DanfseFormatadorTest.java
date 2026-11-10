@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Testes das formatações do DANFSe (item 2.4.5 da NT 008).
@@ -36,7 +37,7 @@ class DanfseFormatadorTest {
     void deveLimitarAQuantidadeDeCaracteresComReticencias() {
         Assertions.assertEquals("abcde", DanfseFormatador.limitar("abcde", 5));
         Assertions.assertEquals("ab...", DanfseFormatador.limitar("abcdef", 5));
-        Assertions.assertEquals(80, DanfseFormatador.limitar("x".repeat(200), 80).length());
+        Assertions.assertEquals(80, DanfseFormatador.limitar(StringUtils.repeat("x", 200), 80).length());
         // as reticencias nao vem depois de um separador
         Assertions.assertEquals("RUA A...", DanfseFormatador.limitar("RUA A, 123, CENTRO", 9));
     }
@@ -61,7 +62,7 @@ class DanfseFormatadorTest {
         // sequencias repetidas fecham o modulo 11, mas nao sao documentos
         Assertions.assertEquals("00000000000", DanfseFormatador.documento("00000000000"));
         Assertions.assertEquals("00000000000000", DanfseFormatador.documento("00000000000000"));
-        Assertions.assertEquals(40, DanfseFormatador.documento("N".repeat(60)).length());
+        Assertions.assertEquals(40, DanfseFormatador.documento(StringUtils.repeat("N", 60)).length());
     }
 
     @Test

@@ -7,6 +7,30 @@ import java.math.BigDecimal;
 
 import static io.github.t3wv.nfse.nacional.danfse.DanfseCanvas.CM;
 import static io.github.t3wv.nfse.nacional.danfse.DanfseCanvas.LINHA;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalBeneficioMunicipal;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalExigSuspensa;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfNFSe;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfNFSeIBSCBS;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfNFSeIBSCBSTotais;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfNFSeIBSCBSTotaisCBS;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfNFSeIBSCBSTotaisIBS;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfNFSeIBSCBSValores;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfNFSeIBSCBSValoresFed;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfNFSeIBSCBSValoresMun;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfNFSeIBSCBSValoresUF;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfoDedRed;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfoIBSCBS;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfoIBSCBSInfoTributosGIBSCBS;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfoPrestador;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfoValores;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalTribFederal;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalTribMunicipal;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalTribOutrosPisCofins;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalVDescCondIncond;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalVServPrest;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalValoresNFSe;
+import java.time.LocalDate;
 
 /**
  * Blocos da tributação municipal (ISSQN), da tributação federal (exceto CBS), da tributação IBS/CBS e do valor total da NFS-e
@@ -32,9 +56,9 @@ final class DanfseTributos {
      * @return altura dos quatro blocos, em pontos, já sem as linhas e os blocos suprimidos
      */
     static float altura(final DanfseNota nota) {
-        final var issqn = naoSujeitaAoIssqn(nota) ? DanfseParticipantes.ALTURA_SUPRIMIDO
+        final float issqn = naoSujeitaAoIssqn(nota) ? DanfseParticipantes.ALTURA_SUPRIMIDO
                 : LINHA * (2 + (temRegimeOuSuspensao(nota) ? 1 : 0) + (temBeneficioOuDeducao(nota) ? 1 : 0));
-        final var federal = LINHA * (temPisCofinsDeApuracaoPropria(nota) ? 2 : 1);
+        final float federal = LINHA * (temPisCofinsDeApuracaoPropria(nota) ? 2 : 1);
         return issqn + federal + 4 * LINHA + 2 * LINHA_TOTAL;
     }
 
@@ -55,7 +79,7 @@ final class DanfseTributos {
      * Operações sem incidência do ISSQN levam só a mensagem da nota 4 do item 2.4.5 no lugar do bloco.
      */
     static boolean naoSujeitaAoIssqn(final DanfseNota nota) {
-        final var tribMun = nota.tribMun();
+        final NFSeSefinNacionalTribMunicipal tribMun = nota.tribMun();
         return tribMun == null || tribMun.getTributacaoISSQN() == NFSeSefinNacionalTribMunicipalTributacaoISSQN.NAO_INCIDENCIA;
     }
 
@@ -65,9 +89,9 @@ final class DanfseTributos {
             canvas.avancar(DanfseParticipantes.ALTURA_SUPRIMIDO);
             return;
         }
-        final var inf = nota.inf();
-        final var tribMun = nota.tribMun();
-        final var valores = inf.getValores();
+        final NFSeSefinNacionalInfNFSe inf = nota.inf();
+        final NFSeSefinNacionalTribMunicipal tribMun = nota.tribMun();
+        final NFSeSefinNacionalValoresNFSe valores = inf.getValores();
 
         canvas.divisoria();
         canvas.tituloBloco("TRIBUTAÇÃO MUNICIPAL (ISSQN)");
@@ -79,7 +103,7 @@ final class DanfseTributos {
 
         // linhas suprimidas quando nenhum campo delas tem dados no XML (nota 5 do item 2.4.5)
         if (temRegimeOuSuspensao(nota)) {
-            final var suspensao = tribMun.getExigibilidadeSuspensa();
+            final NFSeSefinNacionalExigSuspensa suspensao = tribMun.getExigibilidadeSuspensa();
             canvas.campo(0, 1, "Regime Especial de Tributação do ISSQN", DanfseFormatador.ouTraco(DanfseFormatador.limitar(descricaoRegimeEspecial(nota), 27)));
             canvas.campo(1, 1, "Tipo de Imunidade do ISSQN", DanfseFormatador.ouTraco(DanfseFormatador.limitar(
                     tribMun.getTipoImunidade() == null ? null : tribMun.getTipoImunidade().getDescricao(), 40)));
@@ -107,18 +131,18 @@ final class DanfseTributos {
     }
 
     private static String descricaoRegimeEspecial(final DanfseNota nota) {
-        final var prestador = nota.dps().getPrestador();
-        final var regime = prestador == null || prestador.getRegimeTributario() == null ? null : prestador.getRegimeTributario().getRegimeEspecialTributacao();
+        final NFSeSefinNacionalInfoPrestador prestador = nota.dps().getPrestador();
+        final NFSeSefinNacionalRegimeTributarioRegimeEspecialTributacao regime = prestador == null || prestador.getRegimeTributario() == null ? null : prestador.getRegimeTributario().getRegimeEspecialTributacao();
         return regime == null ? null : regime.getDescricao();
     }
 
     private static boolean temRegimeOuSuspensao(final DanfseNota nota) {
-        final var tribMun = nota.tribMun();
-        final var prestador = nota.dps().getPrestador();
-        final var regime = prestador == null || prestador.getRegimeTributario() == null ? null : prestador.getRegimeTributario().getRegimeEspecialTributacao();
+        final NFSeSefinNacionalTribMunicipal tribMun = nota.tribMun();
+        final NFSeSefinNacionalInfoPrestador prestador = nota.dps().getPrestador();
+        final NFSeSefinNacionalRegimeTributarioRegimeEspecialTributacao regime = prestador == null || prestador.getRegimeTributario() == null ? null : prestador.getRegimeTributario().getRegimeEspecialTributacao();
         // "0 - Nenhum" nao e dado de regime especial: a linha do modelo do Sistema Nacional some nesse caso
-        final var temRegime = regime != null && regime != NFSeSefinNacionalRegimeTributarioRegimeEspecialTributacao.NENHUM;
-        final var temImunidadeOuSuspensao = tribMun != null && (tribMun.getTipoImunidade() != null || tribMun.getExigibilidadeSuspensa() != null);
+        final boolean temRegime = regime != null && regime != NFSeSefinNacionalRegimeTributarioRegimeEspecialTributacao.NENHUM;
+        final boolean temImunidadeOuSuspensao = tribMun != null && (tribMun.getTipoImunidade() != null || tribMun.getExigibilidadeSuspensa() != null);
         return temRegime || temImunidadeOuSuspensao;
     }
 
@@ -126,8 +150,8 @@ final class DanfseTributos {
      * Valores zerados (como o vCalcReeRepRes 0.00 que o Sistema Nacional sempre informa) não contam como dado da linha.
      */
     private static boolean temBeneficioOuDeducao(final DanfseNota nota) {
-        final var valores = nota.inf().getValores();
-        final var temBeneficio = valores != null && valores.getTpBM() != null;
+        final NFSeSefinNacionalValoresNFSe valores = nota.inf().getValores();
+        final boolean temBeneficio = valores != null && valores.getTpBM() != null;
         return temBeneficio || diferenteDeZero(calculoBeneficioMunicipal(nota)) || diferenteDeZero(totalDeducoesReducoes(nota))
                 || diferenteDeZero(descontoIncondicionado(nota));
     }
@@ -140,12 +164,12 @@ final class DanfseTributos {
      * Cálculo do benefício municipal: vCalcBM ou, sem ele, vRedBCBM (item 2.4.5).
      */
     private static BigDecimal calculoBeneficioMunicipal(final DanfseNota nota) {
-        final var valores = nota.inf().getValores();
+        final NFSeSefinNacionalValoresNFSe valores = nota.inf().getValores();
         if (valores != null && valores.getVCalcBM() != null) {
             return valores.getVCalcBM();
         }
-        final var tribMun = nota.tribMun();
-        final var beneficio = tribMun == null ? null : tribMun.getBeneficioMunicipal();
+        final NFSeSefinNacionalTribMunicipal tribMun = nota.tribMun();
+        final NFSeSefinNacionalBeneficioMunicipal beneficio = tribMun == null ? null : tribMun.getBeneficioMunicipal();
         return beneficio == null ? null : beneficio.getValorReducaoBaseCalculoBeneficioMunicipal();
     }
 
@@ -153,11 +177,11 @@ final class DanfseTributos {
      * Total de deduções e reduções: vCalcDR (ou, sem ele, vDR) mais vCalcReeRepRes do IBS/CBS (item 2.4.5).
      */
     private static BigDecimal totalDeducoesReducoes(final DanfseNota nota) {
-        final var valores = nota.inf().getValores();
-        final var deducao = nota.dps().getValores() == null ? null : nota.dps().getValores().getValoresDeducaoBaseCalculo();
-        final var calculado = valores == null ? null : valores.getVCalcDR();
-        final var deducaoInformada = calculado != null ? calculado : deducao == null ? null : deducao.getValorMonetarioPadrao();
-        final var reeRepRes = nota.ibsCbsNota() == null || nota.ibsCbsNota().getValores() == null ? null : nota.ibsCbsNota().getValores().getvCalcReeRepRes();
+        final NFSeSefinNacionalValoresNFSe valores = nota.inf().getValores();
+        final NFSeSefinNacionalInfoDedRed deducao = nota.dps().getValores() == null ? null : nota.dps().getValores().getValoresDeducaoBaseCalculo();
+        final BigDecimal calculado = valores == null ? null : valores.getVCalcDR();
+        final BigDecimal deducaoInformada = calculado != null ? calculado : deducao == null ? null : deducao.getValorMonetarioPadrao();
+        final BigDecimal reeRepRes = nota.ibsCbsNota() == null || nota.ibsCbsNota().getValores() == null ? null : nota.ibsCbsNota().getValores().getvCalcReeRepRes();
         if (deducaoInformada == null) {
             return reeRepRes;
         }
@@ -165,20 +189,20 @@ final class DanfseTributos {
     }
 
     private static BigDecimal descontoIncondicionado(final DanfseNota nota) {
-        final var valores = nota.dps().getValores();
-        final var descontos = valores == null ? null : valores.getValoresDescontosCondicionadosEIncondicionados();
+        final NFSeSefinNacionalInfoValores valores = nota.dps().getValores();
+        final NFSeSefinNacionalVDescCondIncond descontos = valores == null ? null : valores.getValoresDescontosCondicionadosEIncondicionados();
         return descontos == null ? null : descontos.getValorDescontoIncondicionado();
     }
 
     private static BigDecimal descontoCondicionado(final DanfseNota nota) {
-        final var valores = nota.dps().getValores();
-        final var descontos = valores == null ? null : valores.getValoresDescontosCondicionadosEIncondicionados();
+        final NFSeSefinNacionalInfoValores valores = nota.dps().getValores();
+        final NFSeSefinNacionalVDescCondIncond descontos = valores == null ? null : valores.getValoresDescontosCondicionadosEIncondicionados();
         return descontos == null ? null : descontos.getValorDescontoCondicionado();
     }
 
     private static void federal(final DanfseCanvas canvas, final DanfseNota nota) {
-        final var tribFed = nota.tribFed();
-        final var pisCofins = nota.pisCofins();
+        final NFSeSefinNacionalTribFederal tribFed = nota.tribFed();
+        final NFSeSefinNacionalTribOutrosPisCofins pisCofins = nota.pisCofins();
         canvas.divisoria();
         canvas.tituloBloco("TRIBUTAÇÃO FEDERAL (EXCETO CBS)");
         canvas.campo(1, 1, "IRRF", DanfseFormatador.valor(tribFed == null ? null : tribFed.getValorIRRF()));
@@ -198,7 +222,7 @@ final class DanfseTributos {
      * A linha do PIS/COFINS de apuração própria só é impressa nas NFS-e com competência até o fim de 2026 (nota 6).
      */
     private static boolean temPisCofinsDeApuracaoPropria(final DanfseNota nota) {
-        final var competencia = nota.dps().getDataInicioPrestacaoServico();
+        final LocalDate competencia = nota.dps().getDataInicioPrestacaoServico();
         return competencia == null || competencia.getYear() <= ULTIMO_ANO_PIS_COFINS;
     }
 
@@ -208,16 +232,16 @@ final class DanfseTributos {
      * aplicada, tributo a tributo, aos demais tipos com PIS ou COFINS retidos.
      */
     static BigDecimal contribuicoesSociaisRetidas(final DanfseNota nota) {
-        final var tribFed = nota.tribFed();
-        final var pisCofins = nota.pisCofins();
-        final var retencao = pisCofins == null ? null : pisCofins.getTipoRetencao();
-        final var pis = retencao != null && retencao.isPisRetido() ? pisCofins.getValorPIS() : null;
-        final var cofins = retencao != null && retencao.isCofinsRetido() ? pisCofins.getValorCofins() : null;
-        final var csll = tribFed == null ? null : tribFed.getValorCSLL();
+        final NFSeSefinNacionalTribFederal tribFed = nota.tribFed();
+        final NFSeSefinNacionalTribOutrosPisCofins pisCofins = nota.pisCofins();
+        final NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao retencao = pisCofins == null ? null : pisCofins.getTipoRetencao();
+        final BigDecimal pis = retencao != null && retencao.isPisRetido() ? pisCofins.getValorPIS() : null;
+        final BigDecimal cofins = retencao != null && retencao.isCofinsRetido() ? pisCofins.getValorCofins() : null;
+        final BigDecimal csll = tribFed == null ? null : tribFed.getValorCSLL();
         if (csll == null && pis == null && cofins == null) {
             return null;
         }
-        var total = BigDecimal.ZERO;
+        BigDecimal total = BigDecimal.ZERO;
         if (csll != null) {
             total = total.add(csll);
         }
@@ -235,7 +259,7 @@ final class DanfseTributos {
      * nos demais casos, vPis.
      */
     static BigDecimal pisApuracaoPropria(final DanfseNota nota) {
-        final var pisCofins = nota.pisCofins();
+        final NFSeSefinNacionalTribOutrosPisCofins pisCofins = nota.pisCofins();
         if (pisCofins == null) {
             return null;
         }
@@ -246,7 +270,7 @@ final class DanfseTributos {
      * COFINS de apuração própria: 0,00 quando o tipo de retenção indica a COFINS retida; nos demais casos, vCofins.
      */
     static BigDecimal cofinsApuracaoPropria(final DanfseNota nota) {
-        final var pisCofins = nota.pisCofins();
+        final NFSeSefinNacionalTribOutrosPisCofins pisCofins = nota.pisCofins();
         if (pisCofins == null) {
             return null;
         }
@@ -254,22 +278,22 @@ final class DanfseTributos {
     }
 
     private static void ibsCbs(final DanfseCanvas canvas, final DanfseNota nota) {
-        final var ibsCbs = nota.ibsCbsNota();
-        final var valores = ibsCbs == null ? null : ibsCbs.getValores();
-        final var uf = valores == null ? null : valores.getUf();
-        final var mun = valores == null ? null : valores.getMun();
-        final var fed = valores == null ? null : valores.getFed();
-        final var totais = ibsCbs == null ? null : ibsCbs.getTotCIBS();
-        final var ibs = totais == null ? null : totais.getgIBS();
-        final var cbs = totais == null ? null : totais.getgCBS();
-        final var dps = nota.ibsCbsDps();
-        final var tributos = dps == null || dps.getValores() == null || dps.getValores().getTrib() == null ? null : dps.getValores().getTrib().getgIBSCBS();
+        final NFSeSefinNacionalInfNFSeIBSCBS ibsCbs = nota.ibsCbsNota();
+        final NFSeSefinNacionalInfNFSeIBSCBSValores valores = ibsCbs == null ? null : ibsCbs.getValores();
+        final NFSeSefinNacionalInfNFSeIBSCBSValoresUF uf = valores == null ? null : valores.getUf();
+        final NFSeSefinNacionalInfNFSeIBSCBSValoresMun mun = valores == null ? null : valores.getMun();
+        final NFSeSefinNacionalInfNFSeIBSCBSValoresFed fed = valores == null ? null : valores.getFed();
+        final NFSeSefinNacionalInfNFSeIBSCBSTotais totais = ibsCbs == null ? null : ibsCbs.getTotCIBS();
+        final NFSeSefinNacionalInfNFSeIBSCBSTotaisIBS ibs = totais == null ? null : totais.getgIBS();
+        final NFSeSefinNacionalInfNFSeIBSCBSTotaisCBS cbs = totais == null ? null : totais.getgCBS();
+        final NFSeSefinNacionalInfoIBSCBS dps = nota.ibsCbsDps();
+        final NFSeSefinNacionalInfoIBSCBSInfoTributosGIBSCBS tributos = dps == null || dps.getValores() == null || dps.getValores().getTrib() == null ? null : dps.getValores().getTrib().getgIBSCBS();
 
         canvas.divisoria();
         canvas.tituloBloco("TRIBUTAÇÃO IBS/CBS");
         canvas.campo(1, 1, "CST / cClassTrib", tributos == null ? DanfseFormatador.SEM_INFORMACAO
                 : DanfseFormatador.limitar(DanfseFormatador.ouTraco(tributos.getCST()) + " / " + DanfseFormatador.ouTraco(tributos.getcClassTrib()), 12));
-        final var indicador = ibsCbs == null && dps == null ? DanfseFormatador.SEM_INFORMACAO
+        final String indicador = ibsCbs == null && dps == null ? DanfseFormatador.SEM_INFORMACAO
                 : DanfseFormatador.ouTraco(dps == null ? null : dps.getcIndOp()) + " / "
                 + DanfseFormatador.ouTraco(ibsCbs == null ? null : ibsCbs.getcLocalidadeIncid()) + " / "
                 + DanfseFormatador.ouTraco(ibsCbs == null ? null : ibsCbs.getxLocalidadeIncid()) + " / "
@@ -304,18 +328,18 @@ final class DanfseTributos {
      * (item 2.4.5).
      */
     static BigDecimal exclusoesEReducoes(final DanfseNota nota) {
-        final var valores = nota.inf().getValores();
-        final var pisCofins = nota.pisCofins();
-        final var ibsCbs = nota.ibsCbsNota();
-        final var descontoIncondicionado = descontoIncondicionado(nota);
-        final var reeRepRes = ibsCbs == null || ibsCbs.getValores() == null ? null : ibsCbs.getValores().getvCalcReeRepRes();
-        final var issqn = valores == null ? null : valores.getVISSQN();
-        final var pis = pisCofins == null ? null : pisCofins.getValorPIS();
-        final var cofins = pisCofins == null ? null : pisCofins.getValorCofins();
+        final NFSeSefinNacionalValoresNFSe valores = nota.inf().getValores();
+        final NFSeSefinNacionalTribOutrosPisCofins pisCofins = nota.pisCofins();
+        final NFSeSefinNacionalInfNFSeIBSCBS ibsCbs = nota.ibsCbsNota();
+        final BigDecimal descontoIncondicionado = descontoIncondicionado(nota);
+        final BigDecimal reeRepRes = ibsCbs == null || ibsCbs.getValores() == null ? null : ibsCbs.getValores().getvCalcReeRepRes();
+        final BigDecimal issqn = valores == null ? null : valores.getVISSQN();
+        final BigDecimal pis = pisCofins == null ? null : pisCofins.getValorPIS();
+        final BigDecimal cofins = pisCofins == null ? null : pisCofins.getValorCofins();
         if (descontoIncondicionado == null && reeRepRes == null && issqn == null && pis == null && cofins == null) {
             return null;
         }
-        var total = BigDecimal.ZERO;
+        BigDecimal total = BigDecimal.ZERO;
         if (descontoIncondicionado != null) {
             total = total.add(descontoIncondicionado);
         }
@@ -335,12 +359,12 @@ final class DanfseTributos {
     }
 
     private static void total(final DanfseCanvas canvas, final DanfseNota nota) {
-        final var valores = nota.inf().getValores();
-        final var valoresDps = nota.dps().getValores();
-        final var servico = valoresDps == null ? null : valoresDps.getValoresServicoPrestado();
-        final var totais = nota.ibsCbsNota() == null ? null : nota.ibsCbsNota().getTotCIBS();
-        final var ibs = totais == null || totais.getgIBS() == null ? null : totais.getgIBS().getvIBSTot();
-        final var cbs = totais == null || totais.getgCBS() == null ? null : totais.getgCBS().getvCBS();
+        final NFSeSefinNacionalValoresNFSe valores = nota.inf().getValores();
+        final NFSeSefinNacionalInfoValores valoresDps = nota.dps().getValores();
+        final NFSeSefinNacionalVServPrest servico = valoresDps == null ? null : valoresDps.getValoresServicoPrestado();
+        final NFSeSefinNacionalInfNFSeIBSCBSTotais totais = nota.ibsCbsNota() == null ? null : nota.ibsCbsNota().getTotCIBS();
+        final BigDecimal ibs = totais == null || totais.getgIBS() == null ? null : totais.getgIBS().getvIBSTot();
+        final BigDecimal cbs = totais == null || totais.getgCBS() == null ? null : totais.getgCBS().getvCBS();
 
         canvas.divisoria();
         canvas.tituloBloco("VALOR TOTAL DA NFS-e");
@@ -351,7 +375,7 @@ final class DanfseTributos {
 
         canvas.campo(0, 1, "Total das Retenções (ISSQN / Federais)", DanfseFormatador.valor(valores == null ? null : valores.getVTotalRet()));
         canvas.campo(1, 1, "VALOR LÍQUIDO DA NFS-e", DanfseFormatador.valor(valores == null ? null : valores.getVLiq()));
-        final var totalIbsCbs = ibs == null ? cbs : cbs == null ? ibs : ibs.add(cbs);
+        final BigDecimal totalIbsCbs = ibs == null ? cbs : cbs == null ? ibs : ibs.add(cbs);
         canvas.campo(2, 1, "Total do IBS/CBS", DanfseFormatador.valor(totalIbsCbs));
         canvas.campo(3, 1, "VALOR LÍQUIDO DA NFS-e + IBS/CBS", DanfseFormatador.valor(totais == null ? null : totais.getvTotNF()));
         canvas.avancar(LINHA_TOTAL);

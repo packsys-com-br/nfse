@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Arrays;
 
 /**
  * Leitura de campos do leiaute 1.01 da NFS-e que o DANFSe imprime.
@@ -21,9 +22,9 @@ class NFSeSefinNacionalNFSeLeituraTest {
 
     @Test
     void deveLerPedidoEItensDoPedidoDasInformacoesComplementares() throws Exception {
-        final var complemento = ler(xmlCompleto()).getInfNFSe().getDPS().getInfDPS().getServicoPrestado().getInformacoesComplementares();
+        final NFSeSefinNacionalInfoCompl complemento = ler(xmlCompleto()).getInfNFSe().getDPS().getInfDPS().getServicoPrestado().getInformacoesComplementares();
         Assertions.assertEquals("PED-4500012345", complemento.getNumeroPedido());
-        Assertions.assertEquals(List.of("10", "20"), complemento.getItensPedido());
+        Assertions.assertEquals(Arrays.asList("10", "20"), complemento.getItensPedido());
         Assertions.assertEquals("Pagamento em 30 dias.", complemento.getInformacoesComplementares());
     }
 
@@ -34,7 +35,7 @@ class NFSeSefinNacionalNFSeLeituraTest {
 
     @Test
     void deveLerORegimeEspecialOutros() throws Exception {
-        final var xml = xmlCompleto().replace("<regEspTrib>2</regEspTrib>", "<regEspTrib>9</regEspTrib>");
+        final String xml = xmlCompleto().replace("<regEspTrib>2</regEspTrib>", "<regEspTrib>9</regEspTrib>");
         Assertions.assertEquals(NFSeSefinNacionalRegimeTributarioRegimeEspecialTributacao.OUTROS,
                 ler(xml).getInfNFSe().getDPS().getInfDPS().getPrestador().getRegimeTributario().getRegimeEspecialTributacao());
     }

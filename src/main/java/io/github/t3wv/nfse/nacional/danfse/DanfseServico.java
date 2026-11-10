@@ -10,6 +10,9 @@ import static io.github.t3wv.nfse.nacional.danfse.DanfseCanvas.PRETO;
 import static io.github.t3wv.nfse.nacional.danfse.DanfseCanvas.RECUO;
 import static io.github.t3wv.nfse.nacional.danfse.DanfseCanvas.TAMANHO_CONTEUDO;
 import static io.github.t3wv.nfse.nacional.danfse.DanfseCanvas.TAMANHO_ROTULO;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalCServ;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalLocPrest;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalServ;
 
 /**
  * Bloco do serviço prestado: códigos, local da prestação, descrição do código de tributação e descrição do serviço (item 2.1.7
@@ -44,8 +47,8 @@ final class DanfseServico {
      * @return linhas da descrição
      */
     static List<String> linhasDescricao(final DanfseCanvas canvas, final DanfseNota nota) {
-        final var servico = nota.dps().getServicoPrestado();
-        final var descricao = servico == null || servico.getCServ() == null ? null : servico.getCServ().getDescricaoServico();
+        final NFSeSefinNacionalServ servico = nota.dps().getServicoPrestado();
+        final String descricao = servico == null || servico.getCServ() == null ? null : servico.getCServ().getDescricaoServico();
         return canvas.quebrar(DanfseFormatador.ouTraco(DanfseFormatador.limitar(descricao, 1300)), LARGURA - 2 * RECUO, TAMANHO_CONTEUDO, false);
     }
 
@@ -67,26 +70,26 @@ final class DanfseServico {
      * @param alturaDescricao altura reservada para a descrição do serviço, em pontos
      */
     static void desenhar(final DanfseCanvas canvas, final DanfseNota nota, final List<String> linhasDescricao, final float alturaDescricao) {
-        final var servico = nota.dps().getServicoPrestado();
-        final var codigos = servico == null ? null : servico.getCServ();
-        final var localPrestacao = servico == null ? null : servico.getLocalPrestacao();
+        final NFSeSefinNacionalServ servico = nota.dps().getServicoPrestado();
+        final NFSeSefinNacionalCServ codigos = servico == null ? null : servico.getCServ();
+        final NFSeSefinNacionalLocPrest localPrestacao = servico == null ? null : servico.getLocalPrestacao();
 
         canvas.divisoria();
         canvas.tituloBloco("SERVIÇO PRESTADO");
-        final var codigoTributacao = codigos == null ? DanfseFormatador.SEM_INFORMACAO
+        final String codigoTributacao = codigos == null ? DanfseFormatador.SEM_INFORMACAO
                 : DanfseFormatador.ouTraco(DanfseFormatador.codigoTributacaoNacional(codigos.getCodigoNacionalTributacaoISSQN())) + " / "
                 + DanfseFormatador.ouTraco(codigos.getCodigoMunicipalTributacaoISSQN());
         canvas.campo(1, 1, "Código de Tributação Nacional / Municipal", DanfseFormatador.limitar(codigoTributacao, 14));
         canvas.campo(2, 1, "Código da NBS", DanfseFormatador.nbs(codigos == null ? null : codigos.getCodigoNBS()));
-        final var codigoMunicipio = localPrestacao == null ? null : localPrestacao.getCodigoMunicipio();
-        final var pais = localPrestacao == null ? null : localPrestacao.getCodigoPais();
+        final String codigoMunicipio = localPrestacao == null ? null : localPrestacao.getCodigoMunicipio();
+        final String pais = localPrestacao == null ? null : localPrestacao.getCodigoPais();
         canvas.campo(3, 1, "Local da Prestação / Sigla UF / País", DanfseFormatador.limitar(
                 local(nota.inf().getLocalPrestacao(), codigoMunicipio, pais), 42));
         canvas.avancar(LINHA);
 
         // sem titulo: a descricao municipal do codigo de tributacao, se houver, senao a nacional
-        final var descricaoMunicipal = DanfseFormatador.texto(nota.inf().getDescricaoMunicipalISSQN());
-        final var descricaoCodigo = descricaoMunicipal.isEmpty() ? nota.inf().getDescricaoNacionalISSQN() : descricaoMunicipal;
+        final String descricaoMunicipal = DanfseFormatador.texto(nota.inf().getDescricaoMunicipalISSQN());
+        final String descricaoCodigo = descricaoMunicipal.isEmpty() ? nota.inf().getDescricaoNacionalISSQN() : descricaoMunicipal;
         canvas.texto(RECUO, 1.5f + TAMANHO_CONTEUDO * 0.72f, LARGURA - 2 * RECUO, DanfseFormatador.ouTraco(DanfseFormatador.limitar(descricaoCodigo, 170)),
                 TAMANHO_CONTEUDO, false, ESQUERDA, PRETO);
         canvas.avancar(ALTURA_DESCRICAO_CODIGO);
@@ -106,7 +109,7 @@ final class DanfseServico {
      * @return local formatado
      */
     static String local(final String nome, final String codigoMunicipio, final String pais) {
-        final var municipio = DanfseFormatador.texto(nome).isEmpty() ? codigoMunicipio : nome;
+        final String municipio = DanfseFormatador.texto(nome).isEmpty() ? codigoMunicipio : nome;
         if (DanfseFormatador.texto(municipio).isEmpty() && DanfseFormatador.texto(pais).isEmpty()) {
             return DanfseFormatador.SEM_INFORMACAO;
         }

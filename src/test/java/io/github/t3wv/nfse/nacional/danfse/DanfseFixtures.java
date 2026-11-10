@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.pdfbox.pdmodel.PDDocument;
 
 /**
  * XMLs de NFS-e fictícios dos testes do DANFSe (de {@link NFSeSefinNacionalNFSeFixtures}) e leitura do texto dos PDFs gerados.
@@ -32,11 +33,14 @@ final class DanfseFixtures {
      * @return conteúdo do XML
      */
     static String xml(final String nome) {
-        return switch (nome) {
-            case COMPLETA -> NFSeSefinNacionalNFSeFixtures.XML_COMPLETA;
-            case MINIMA -> NFSeSefinNacionalNFSeFixtures.XML_MINIMA;
-            default -> throw new IllegalArgumentException("XML de teste desconhecido: " + nome);
-        };
+        switch (nome) {
+            case COMPLETA:
+                return NFSeSefinNacionalNFSeFixtures.XML_COMPLETA;
+            case MINIMA:
+                return NFSeSefinNacionalNFSeFixtures.XML_MINIMA;
+            default:
+                throw new IllegalArgumentException("XML de teste desconhecido: " + nome);
+        }
     }
 
     /**
@@ -60,7 +64,7 @@ final class DanfseFixtures {
      * @return texto da página, na ordem em que foi desenhado
      */
     static String texto(final byte[] pdf) {
-        try (final var documento = Loader.loadPDF(pdf)) {
+        try (final PDDocument documento = Loader.loadPDF(pdf)) {
             return new PDFTextStripper().getText(documento);
         } catch (final IOException e) {
             throw new UncheckedIOException(e);
@@ -86,8 +90,8 @@ final class DanfseFixtures {
      */
     static List<Glifo> glifos(final byte[] pdf) {
         final List<Glifo> glifos = new ArrayList<>();
-        try (final var documento = Loader.loadPDF(pdf)) {
-            final var leitor = new PDFTextStripper() {
+        try (final PDDocument documento = Loader.loadPDF(pdf)) {
+            final PDFTextStripper leitor = new PDFTextStripper() {
                 @Override
                 protected void writeString(final String texto, final List<TextPosition> posicoes) {
                     posicoes.forEach(posicao -> glifos.add(new Glifo(posicao.getUnicode(), posicao.getYDirAdj())));

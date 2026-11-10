@@ -2,6 +2,7 @@ package io.github.t3wv.nfse.nacional.danfse;
 
 import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalNFSe;
 import io.github.t3wv.nfse.utils.NFSePersister;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 
 import java.io.ByteArrayOutputStream;
@@ -12,6 +13,7 @@ import java.util.regex.Pattern;
 import static io.github.t3wv.nfse.nacional.danfse.DanfseCanvas.LARGURA;
 import static io.github.t3wv.nfse.nacional.danfse.DanfseCanvas.RECUO;
 import static io.github.t3wv.nfse.nacional.danfse.DanfseCanvas.TAMANHO_CONTEUDO;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfNFSe;
 
 /**
  * Gera o DANFSe (Documento Auxiliar da NFS-e de padrão nacional) em PDF, a partir do XML da NFS-e, sem acessar o Sistema
@@ -87,7 +89,7 @@ public class NFSeGeraDanfse {
      * @throws IllegalArgumentException se o XML for nulo, vazio, inválido ou não for de uma NFS-e
      */
     NFSeSefinNacionalNFSe ler(final String xmlNfse) {
-        if (xmlNfse == null || xmlNfse.isBlank()) {
+        if (StringUtils.isBlank(xmlNfse)) {
             throw new IllegalArgumentException(MENSAGEM_XML_NAO_INFORMADO);
         }
         if (!raizNfse(xmlNfse)) {
@@ -109,7 +111,7 @@ public class NFSeGeraDanfse {
      * @return true se a raiz é o elemento NFSe
      */
     private static boolean raizNfse(final String xml) {
-        var posicao = xml.startsWith("﻿") ? 1 : 0;
+        int posicao = xml.startsWith("﻿") ? 1 : 0;
         while (true) {
             while (posicao < xml.length() && Character.isWhitespace(xml.charAt(posicao))) {
                 posicao++;
@@ -125,7 +127,7 @@ public class NFSeGeraDanfse {
             } else {
                 break;
             }
-            final var fim = xml.indexOf(fechamento, posicao + abertura.length());
+            final int fim = xml.indexOf(fechamento, posicao + abertura.length());
             if (fim < 0) {
                 return false;
             }
@@ -144,7 +146,7 @@ public class NFSeGeraDanfse {
         if (nfse == null) {
             throw new IllegalArgumentException(MENSAGEM_NFSE_NAO_INFORMADA);
         }
-        final var inf = nfse.getInfNFSe();
+        final NFSeSefinNacionalInfNFSe inf = nfse.getInfNFSe();
         if (inf == null || inf.getEmitente() == null || inf.getValores() == null || inf.getDPS() == null || inf.getDPS().getInfDPS() == null
                 || inf.getDPS().getInfDPS().getPrestador() == null || inf.getDPS().getInfDPS().getServicoPrestado() == null) {
             throw new IllegalArgumentException(MENSAGEM_NFSE_SEM_DADOS);
@@ -161,15 +163,15 @@ public class NFSeGeraDanfse {
      * @return bytes do PDF
      */
     private static byte[] renderizar(final DanfseNota nota, final DanfseOpcoes opcoes) {
-        try (final var documento = new PDDocument(); final var saida = new ByteArrayOutputStream()) {
-            final var canvas = new DanfseCanvas(documento);
+        try (final PDDocument documento = new PDDocument(); final ByteArrayOutputStream saida = new ByteArrayOutputStream()) {
+            final DanfseCanvas canvas = new DanfseCanvas(documento);
             DanfseCabecalho.desenhar(canvas, nota);
             DanfseParticipantes.desenhar(canvas, nota);
 
-            final var disponivel = DanfseRodape.limiteInferior(opcoes.isCanhoto()) - canvas.y() - DanfseServico.alturaFixa()
+            final float disponivel = DanfseRodape.limiteInferior(opcoes.isCanhoto()) - canvas.y() - DanfseServico.alturaFixa()
                     - DanfseTributos.altura(nota) - DanfseRodape.ALTURA_TITULO;
-            final var largura = LARGURA - 2 * RECUO;
-            final var totais = DanfseRodape.linhas(canvas, DanfseRodape.totaisAproximados(nota));
+            final float largura = LARGURA - 2 * RECUO;
+            final List<String> totais = DanfseRodape.linhas(canvas, DanfseRodape.totaisAproximados(nota));
             List<String> descricao = DanfseServico.linhasDescricao(canvas, nota);
             List<String> informacoes = DanfseRodape.linhas(canvas, DanfseRodape.informacoes(nota));
             while (DanfseServico.alturaDescricao(canvas, descricao.size()) + DanfseRodape.alturaInformacoes(canvas, informacoes.size() + totais.size()) > disponivel

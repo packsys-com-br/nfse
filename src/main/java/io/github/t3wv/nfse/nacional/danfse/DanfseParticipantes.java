@@ -10,6 +10,13 @@ import java.util.Arrays;
 
 import static io.github.t3wv.nfse.nacional.danfse.DanfseCanvas.CM;
 import static io.github.t3wv.nfse.nacional.danfse.DanfseCanvas.LINHA;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalEnderExt;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalEnderNac;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalEnderecoEmitente;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfoIBSCBS;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfoIBSCBSInfoDest;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfoPrestador;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalRegTrib;
 
 /**
  * Blocos do prestador/fornecedor, tomador/adquirente, destinatário e intermediário da operação (itens 2.1.3 a 2.1.6 da NT 008).
@@ -60,8 +67,8 @@ final class DanfseParticipantes {
     }
 
     private static void prestador(final DanfseCanvas canvas, final DanfseNota nota) {
-        final var prest = nota.dps().getPrestador();
-        final var participante = new Participante();
+        final NFSeSefinNacionalInfoPrestador prest = nota.dps().getPrestador();
+        final DanfseParticipantes.Participante participante = new Participante();
         if (prest != null) {
             preencher(participante, nota, informado(prest.getCNPJ(), prest.getCPF(), prest.getNIF()), prest.getInscricaoMunicipal(),
                     prest.getTelefone(), prest.getNome(), prest.getEndereco(), prest.getEmail());
@@ -69,9 +76,9 @@ final class DanfseParticipantes {
         completarComEmitente(participante, nota, NFSeSefinNacionalInfDPSTipoEmitente.PRESTADOR);
         linhasDoParticipante(canvas, "PRESTADOR / FORNECEDOR", participante, true);
 
-        final var regime = prest == null ? null : prest.getRegimeTributario();
-        final var simplesNacional = regime == null || regime.getOpSimplesNacional() == null ? null : regime.getOpSimplesNacional().getDescricao();
-        final var apuracao = regime == null || regime.getRegimeApuracaoAposLimiteSimplesNacional() == null ? null
+        final NFSeSefinNacionalRegTrib regime = prest == null ? null : prest.getRegimeTributario();
+        final String simplesNacional = regime == null || regime.getOpSimplesNacional() == null ? null : regime.getOpSimplesNacional().getDescricao();
+        final String apuracao = regime == null || regime.getRegimeApuracaoAposLimiteSimplesNacional() == null ? null
                 : regime.getRegimeApuracaoAposLimiteSimplesNacional().getDescricao();
         canvas.campo(0, 1, "Simples Nacional na Data de Competência", DanfseFormatador.ouTraco(DanfseFormatador.limitar(simplesNacional, 40)));
         canvas.campo(1, 2, "Regime de Apuração Tributária pelo SN", DanfseFormatador.ouTraco(DanfseFormatador.limitar(apuracao, 80)));
@@ -79,7 +86,7 @@ final class DanfseParticipantes {
     }
 
     private static void tomador(final DanfseCanvas canvas, final DanfseNota nota) {
-        final var tomador = nota.dps().getTomador();
+        final NFSeSefinNacionalInfoPessoa tomador = nota.dps().getTomador();
         if (tomador == null && nota.dps().getTipoEmitente() != NFSeSefinNacionalInfDPSTipoEmitente.TOMADOR) {
             suprimir(canvas, TOMADOR_NAO_IDENTIFICADO);
             return;
@@ -88,24 +95,24 @@ final class DanfseParticipantes {
     }
 
     private static void destinatario(final DanfseCanvas canvas, final DanfseNota nota) {
-        final var ibsCbs = nota.ibsCbsDps();
+        final NFSeSefinNacionalInfoIBSCBS ibsCbs = nota.ibsCbsDps();
         if (ibsCbs != null && ibsCbs.getIndDest() == NFSeSefinNacionalInfoIBSCBSIndDest.TOMADOR) {
             suprimir(canvas, DESTINATARIO_E_O_TOMADOR);
             return;
         }
-        final var dest = ibsCbs == null ? null : ibsCbs.getDest();
+        final NFSeSefinNacionalInfoIBSCBSInfoDest dest = ibsCbs == null ? null : ibsCbs.getDest();
         if (dest == null) {
             suprimir(canvas, DESTINATARIO_NAO_IDENTIFICADO);
             return;
         }
-        final var participante = new Participante();
+        final DanfseParticipantes.Participante participante = new Participante();
         preencher(participante, nota, informado(dest.getCNPJ(), dest.getCPF(), dest.getNIF()), null, dest.getTelefone(), dest.getNome(),
                 dest.getEndereco(), dest.getEmail());
         linhasDoParticipante(canvas, "DESTINATÁRIO DA OPERAÇÃO", participante, false);
     }
 
     private static void intermediario(final DanfseCanvas canvas, final DanfseNota nota) {
-        final var intermediario = nota.dps().getIntermediario();
+        final NFSeSefinNacionalInfoPessoa intermediario = nota.dps().getIntermediario();
         if (intermediario == null && nota.dps().getTipoEmitente() != NFSeSefinNacionalInfDPSTipoEmitente.INTERMEDIARIO) {
             suprimir(canvas, INTERMEDIARIO_NAO_IDENTIFICADO);
             return;
@@ -132,12 +139,12 @@ final class DanfseParticipantes {
         canvas.campo(3, 1, "Telefone", participante.telefone);
         canvas.avancar(LINHA);
         // nome, endereco e e-mail podem ter 80 caracteres, que nem sempre cabem numa linha de 10,19 cm: usam ate duas linhas
-        final var linhasNome = canvas.campo(0, 2, "Nome / Nome Empresarial", participante.nome, LINHAS_POR_CAMPO);
+        final int linhasNome = canvas.campo(0, 2, "Nome / Nome Empresarial", participante.nome, LINHAS_POR_CAMPO);
         canvas.campo(2, 1, "Município / Sigla UF", participante.municipio);
         canvas.campo(3, 1, "Código IBGE / CEP", participante.codigoIbgeCep);
         canvas.avancar(canvas.alturaLinhaDeCampos(linhasNome));
-        final var linhasEndereco = canvas.campo(0, 2, "Endereço", participante.endereco, LINHAS_POR_CAMPO);
-        final var linhasEmail = canvas.campo(2, 2, "E-mail", participante.email, LINHAS_POR_CAMPO);
+        final int linhasEndereco = canvas.campo(0, 2, "Endereço", participante.endereco, LINHAS_POR_CAMPO);
+        final int linhasEmail = canvas.campo(2, 2, "E-mail", participante.email, LINHAS_POR_CAMPO);
         canvas.avancar(canvas.alturaLinhaDeCampos(Math.max(linhasEndereco, linhasEmail)));
     }
 
@@ -145,7 +152,7 @@ final class DanfseParticipantes {
      * Tomador ou intermediário; quando ele é o emitente da NFS-e, os dados que faltam na DPS vêm do grupo do emitente.
      */
     private static Participante pessoa(final DanfseNota nota, final NFSeSefinNacionalInfoPessoa pessoa, final NFSeSefinNacionalInfDPSTipoEmitente papel) {
-        final var participante = new Participante();
+        final DanfseParticipantes.Participante participante = new Participante();
         if (pessoa != null) {
             preencher(participante, nota, informado(pessoa.getCNPJ(), pessoa.getCPF(), pessoa.getNIF()), pessoa.getInscricaoMunicipal(),
                     pessoa.getTelefone(), pessoa.getNome(), pessoa.getEndereco(), pessoa.getEmail());
@@ -172,8 +179,8 @@ final class DanfseParticipantes {
         if (endereco != null) {
             participante.endereco = DanfseFormatador.ouTraco(DanfseFormatador.limitar(DanfseFormatador.juntar(", ", endereco.getLogradouro(),
                     endereco.getNumero(), endereco.getComplemento(), endereco.getBairro()), 80));
-            final var nacional = endereco.getEnderecoNacional();
-            final var exterior = endereco.getEnderecoExterior();
+            final NFSeSefinNacionalEnderNac nacional = endereco.getEnderecoNacional();
+            final NFSeSefinNacionalEnderExt exterior = endereco.getEnderecoExterior();
             if (nacional != null) {
                 participante.municipio = DanfseFormatador.limitar(nota.municipioUf(nacional.getCodigoMunicipio()), 37);
                 participante.codigoIbgeCep = DanfseFormatador.ouTraco(DanfseFormatador.juntar(" / ", nacional.getCodigoMunicipio(), DanfseFormatador.cep(nacional.getCEP())));
@@ -189,12 +196,12 @@ final class DanfseParticipantes {
      * no grupo do emitente (infNFSe/emit): completa com eles só os campos que ficaram sem informação.
      */
     private static void completarComEmitente(final Participante participante, final DanfseNota nota, final NFSeSefinNacionalInfDPSTipoEmitente papel) {
-        final var tipoEmitente = nota.dps().getTipoEmitente() == null ? NFSeSefinNacionalInfDPSTipoEmitente.PRESTADOR : nota.dps().getTipoEmitente();
+        final NFSeSefinNacionalInfDPSTipoEmitente tipoEmitente = nota.dps().getTipoEmitente() == null ? NFSeSefinNacionalInfDPSTipoEmitente.PRESTADOR : nota.dps().getTipoEmitente();
         final NFSeSefinNacionalEmitente emitente = nota.inf().getEmitente();
         if (tipoEmitente != papel || emitente == null) {
             return;
         }
-        final var semInformacao = DanfseFormatador.SEM_INFORMACAO;
+        final String semInformacao = DanfseFormatador.SEM_INFORMACAO;
         if (semInformacao.equals(participante.documento)) {
             participante.documento = DanfseFormatador.documento(informado(emitente.getCNPJ(), emitente.getCPF()));
         }
@@ -210,12 +217,12 @@ final class DanfseParticipantes {
         if (semInformacao.equals(participante.email)) {
             participante.email = DanfseFormatador.ouTraco(DanfseFormatador.limitar(emitente.getEmail(), 80));
         }
-        final var endereco = emitente.getEnderNac();
+        final NFSeSefinNacionalEnderecoEmitente endereco = emitente.getEnderNac();
         if (endereco != null && semInformacao.equals(participante.endereco)) {
             participante.endereco = DanfseFormatador.ouTraco(DanfseFormatador.limitar(DanfseFormatador.juntar(", ", endereco.getXLgr(), endereco.getNro(),
                     endereco.getXCpl(), endereco.getXBairro()), 80));
-            final var nome = nota.nomeMunicipio(endereco.getCMun());
-            final var uf = endereco.getUF() == null ? DanfseFormatador.uf(endereco.getCMun()) : endereco.getUF().name();
+            final String nome = nota.nomeMunicipio(endereco.getCMun());
+            final String uf = endereco.getUF() == null ? DanfseFormatador.uf(endereco.getCMun()) : endereco.getUF().name();
             participante.municipio = DanfseFormatador.ouTraco(DanfseFormatador.limitar(DanfseFormatador.juntar(" / ", nome == null ? endereco.getCMun() : nome, uf), 37));
             participante.codigoIbgeCep = DanfseFormatador.ouTraco(DanfseFormatador.juntar(" / ", endereco.getCMun(), DanfseFormatador.cep(endereco.getCEP())));
         }

@@ -10,6 +10,14 @@ import static io.github.t3wv.nfse.nacional.danfse.DanfseCanvas.PRETO;
 import static io.github.t3wv.nfse.nacional.danfse.DanfseCanvas.RECUO;
 import static io.github.t3wv.nfse.nacional.danfse.DanfseCanvas.TAMANHO_ROTULO_IDENTIFICACAO;
 import static io.github.t3wv.nfse.nacional.danfse.DanfseCanvas.VERMELHO;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalEmitente;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalEnderecoEmitente;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfDPS;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfNFSe;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfoIBSCBS;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalServ;
+import java.util.List;
+import org.apache.pdfbox.pdmodel.graphics.color.PDColor;
 
 /**
  * Cabeçalho (logomarca, descrição do documento, município e ambientes) e bloco de identificação da NFS-e, com o QR Code
@@ -64,28 +72,28 @@ final class DanfseCabecalho {
         canvas.imagem(0.19f * CM, 4.00f * CM, 0.85f * CM, DanfseLogomarca.PNG);
         canvas.avancar(-0.14f * CM);
 
-        final var descricao = new ArrayList<String>();
+        final ArrayList<String> descricao = new ArrayList<String>();
         descricao.add("DANFSe v2.0");
         descricao.add("Documento Auxiliar da NFS-e");
         if (nota.homologacao()) {
             descricao.add(SEM_VALIDADE_JURIDICA);
         }
-        final var alturaLinha = canvas.alturaLinha(TAMANHO_DESCRICAO);
-        final var primeiraBase = (ALTURA_CABECALHO * CM - descricao.size() * alturaLinha) / 2 + TAMANHO_DESCRICAO * 0.85f;
+        final float alturaLinha = canvas.alturaLinha(TAMANHO_DESCRICAO);
+        final float primeiraBase = (ALTURA_CABECALHO * CM - descricao.size() * alturaLinha) / 2 + TAMANHO_DESCRICAO * 0.85f;
         for (int i = 0; i < descricao.size(); i++) {
-            final var cor = i == 2 ? VERMELHO : PRETO;
+            final PDColor cor = i == 2 ? VERMELHO : PRETO;
             canvas.texto(DanfseCanvas.coluna(1), primeiraBase + i * alturaLinha, DanfseCanvas.larguraColunas(1, 2), descricao.get(i), TAMANHO_DESCRICAO, true, CENTRO, cor);
         }
 
-        final var x = DanfseCanvas.coluna(3) + RECUO;
-        final var largura = DanfseCanvas.larguraColunas(3, 1) - RECUO;
-        final var municipio = municipio(nota);
+        final float x = DanfseCanvas.coluna(3) + RECUO;
+        final float largura = DanfseCanvas.larguraColunas(3, 1) - RECUO;
+        final String municipio = municipio(nota);
         if (municipio != null) {
             canvas.texto(x, 0.40f * CM, largura, "Município: " + municipio, TAMANHO_MUNICIPIO, false, ESQUERDA, PRETO);
         }
-        final var inf = nota.inf();
-        final var ambienteGerador = inf.getAmbienteGeracao() == null ? DanfseFormatador.SEM_INFORMACAO : inf.getAmbienteGeracao().getCodigo();
-        final var tipoAmbiente = nota.dps().getTipoAmbiente() == null ? DanfseFormatador.SEM_INFORMACAO : nota.dps().getTipoAmbiente().getCodigo();
+        final NFSeSefinNacionalInfNFSe inf = nota.inf();
+        final String ambienteGerador = inf.getAmbienteGeracao() == null ? DanfseFormatador.SEM_INFORMACAO : inf.getAmbienteGeracao().getCodigo();
+        final String tipoAmbiente = nota.dps().getTipoAmbiente() == null ? DanfseFormatador.SEM_INFORMACAO : nota.dps().getTipoAmbiente().getCodigo();
         canvas.texto(x, 0.86f * CM, largura, "Ambiente Gerador: " + ambienteGerador, TAMANHO_AMBIENTE, false, ESQUERDA, PRETO);
         canvas.texto(x, 1.11f * CM, largura, "Tipo de Ambiente: " + tipoAmbiente, TAMANHO_AMBIENTE, false, ESQUERDA, PRETO);
     }
@@ -98,15 +106,15 @@ final class DanfseCabecalho {
      * @return município e UF, ou null quando não deve ser exibido
      */
     static String municipio(final DanfseNota nota) {
-        final var servico = nota.dps().getServicoPrestado();
-        final var codigoTributacao = servico == null || servico.getCServ() == null ? "" : DanfseFormatador.texto(servico.getCServ().getCodigoNacionalTributacaoISSQN());
+        final NFSeSefinNacionalServ servico = nota.dps().getServicoPrestado();
+        final String codigoTributacao = servico == null || servico.getCServ() == null ? "" : DanfseFormatador.texto(servico.getCServ().getCodigoNacionalTributacaoISSQN());
         if (codigoTributacao.startsWith("99")) {
             return null;
         }
-        final var emitente = nota.inf().getEmitente();
-        final var endereco = emitente == null ? null : emitente.getEnderNac();
-        final var ufEmissao = DanfseFormatador.uf(nota.dps().getCodigoMunicipioEmissao());
-        final var uf = !ufEmissao.isEmpty() || endereco == null || endereco.getUF() == null ? ufEmissao : endereco.getUF().name();
+        final NFSeSefinNacionalEmitente emitente = nota.inf().getEmitente();
+        final NFSeSefinNacionalEnderecoEmitente endereco = emitente == null ? null : emitente.getEnderNac();
+        final String ufEmissao = DanfseFormatador.uf(nota.dps().getCodigoMunicipioEmissao());
+        final String uf = !ufEmissao.isEmpty() || endereco == null || endereco.getUF() == null ? ufEmissao : endereco.getUF().name();
         return DanfseFormatador.limitar(DanfseFormatador.juntar(" / ", nota.inf().getLocalEmissao(), uf), 37);
     }
 
@@ -114,8 +122,8 @@ final class DanfseCabecalho {
      * Desenha a identificação da NFS-e: chave de acesso, números, datas, emitente, situação e finalidade, com o QR Code à direita.
      */
     private static void identificacao(final DanfseCanvas canvas, final DanfseNota nota) {
-        final var inf = nota.inf();
-        final var dps = nota.dps();
+        final NFSeSefinNacionalInfNFSe inf = nota.inf();
+        final NFSeSefinNacionalInfDPS dps = nota.dps();
         canvas.posicionar(TOPO_IDENTIFICACAO * CM);
         canvas.divisoria();
         canvas.campo(0, 3, "CHAVE DE ACESSO DA NFS-e", TAMANHO_ROTULO_IDENTIFICACAO, nota.chaveAcesso());
@@ -132,12 +140,12 @@ final class DanfseCabecalho {
         canvas.campo(2, 1, "DATA E HORA DA EMISSÃO DA DPS", TAMANHO_ROTULO_IDENTIFICACAO, DanfseFormatador.dataHora(dps.getDataHoraEmissao()));
         canvas.avancar(ALTURA_LINHA_IDENTIFICACAO * CM);
 
-        final var emitente = dps.getTipoEmitente() == null ? null : DanfseFormatador.primeiraMaiuscula(dps.getTipoEmitente().getDescricao());
+        final String emitente = dps.getTipoEmitente() == null ? null : DanfseFormatador.primeiraMaiuscula(dps.getTipoEmitente().getDescricao());
         canvas.campo(0, 1, "EMITENTE DA NFS-e", TAMANHO_ROTULO_IDENTIFICACAO, DanfseFormatador.ouTraco(emitente));
-        final var situacao = inf.getSituacao() == null ? null : inf.getSituacao().getDescricao();
+        final String situacao = inf.getSituacao() == null ? null : inf.getSituacao().getDescricao();
         canvas.campo(1, 1, "SITUAÇÃO DA NFS-e", TAMANHO_ROTULO_IDENTIFICACAO, DanfseFormatador.ouTraco(DanfseFormatador.limitar(situacao, 40)));
-        final var ibsCbs = nota.ibsCbsDps();
-        final var finalidade = ibsCbs == null || ibsCbs.getFinNFSe() == null ? null : ibsCbs.getFinNFSe().getDescricao();
+        final NFSeSefinNacionalInfoIBSCBS ibsCbs = nota.ibsCbsDps();
+        final String finalidade = ibsCbs == null || ibsCbs.getFinNFSe() == null ? null : ibsCbs.getFinNFSe().getDescricao();
         canvas.campo(2, 1, "FINALIDADE", TAMANHO_ROTULO_IDENTIFICACAO, DanfseFormatador.ouTraco(DanfseFormatador.limitar(finalidade, 40)));
     }
 
@@ -146,12 +154,12 @@ final class DanfseCabecalho {
      * de 6 pontos (item 2.4.3).
      */
     private static void qrCode(final DanfseCanvas canvas, final DanfseNota nota) {
-        final var topo = canvas.y();
+        final float topo = canvas.y();
         canvas.posicionar(1.67f * CM);
         canvas.qrCode((17.48f - 0.30f) * CM, 1.52f * CM, URL_CONSULTA_PUBLICA + nota.chaveAcesso());
         canvas.posicionar(3.36f * CM);
-        final var largura = 4.72f * CM;
-        final var linhas = canvas.quebrar(COMPLEMENTO_QR_CODE, largura, TAMANHO_COMPLEMENTO_QR_CODE, false);
+        final float largura = 4.72f * CM;
+        final List<String> linhas = canvas.quebrar(COMPLEMENTO_QR_CODE, largura, TAMANHO_COMPLEMENTO_QR_CODE, false);
         for (int i = 0; i < linhas.size(); i++) {
             canvas.texto((15.80f - 0.30f) * CM, TAMANHO_COMPLEMENTO_QR_CODE + i * canvas.alturaLinha(TAMANHO_COMPLEMENTO_QR_CODE), largura,
                     linhas.get(i), TAMANHO_COMPLEMENTO_QR_CODE, false, ESQUERDA, PRETO);

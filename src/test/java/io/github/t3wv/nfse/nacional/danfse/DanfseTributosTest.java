@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 class DanfseTributosTest {
 
     private static DanfseNota nota(final NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao retencao) {
-        final var nota = DanfseFixtures.nota(DanfseFixtures.COMPLETA);
+        final DanfseNota nota = DanfseFixtures.nota(DanfseFixtures.COMPLETA);
         // vRetCSLL 100,00, vPis 65,00 e vCofins 300,00
         nota.pisCofins().setTipoRetencao(retencao);
         return nota;
@@ -20,7 +20,7 @@ class DanfseTributosTest {
 
     @Test
     void deveSomarPisECofinsRetidosNasContribuicoesEZerarOsDebitosProprios() {
-        final var nota = nota(NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao.PIS_COFINS_RETIDOS);
+        final DanfseNota nota = nota(NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao.PIS_COFINS_RETIDOS);
         Assertions.assertEquals(new BigDecimal("465.00"), DanfseTributos.contribuicoesSociaisRetidas(nota));
         Assertions.assertEquals(BigDecimal.ZERO, DanfseTributos.pisApuracaoPropria(nota));
         Assertions.assertEquals(BigDecimal.ZERO, DanfseTributos.cofinsApuracaoPropria(nota));
@@ -28,9 +28,9 @@ class DanfseTributosTest {
 
     @Test
     void deveManterOsDebitosPropriosQuandoPisECofinsNaoSaoRetidos() {
-        for (final var retencao : new NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao[]{NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao.NAO_RETIDOS,
+        for (final NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao retencao : new NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao[]{NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao.NAO_RETIDOS,
                 NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao.PIS_COFINS_NAO_RETIDOS, NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao.PIS_COFINS_NAO_RETIDOS_CSLL_RETIDO, null}) {
-            final var nota = nota(retencao);
+            final DanfseNota nota = nota(retencao);
             Assertions.assertEquals(new BigDecimal("100.00"), DanfseTributos.contribuicoesSociaisRetidas(nota), String.valueOf(retencao));
             Assertions.assertEquals(new BigDecimal("65.00"), DanfseTributos.pisApuracaoPropria(nota), String.valueOf(retencao));
             Assertions.assertEquals(new BigDecimal("300.00"), DanfseTributos.cofinsApuracaoPropria(nota), String.valueOf(retencao));
@@ -39,25 +39,25 @@ class DanfseTributosTest {
 
     @Test
     void deveAplicarARetencaoTributoATributo() {
-        final var soPis = nota(NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao.PIS_RETIDO_COFINS_CSLL_NAO_RETIDOS);
+        final DanfseNota soPis = nota(NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao.PIS_RETIDO_COFINS_CSLL_NAO_RETIDOS);
         Assertions.assertEquals(new BigDecimal("165.00"), DanfseTributos.contribuicoesSociaisRetidas(soPis));
         Assertions.assertEquals(BigDecimal.ZERO, DanfseTributos.pisApuracaoPropria(soPis));
         Assertions.assertEquals(new BigDecimal("300.00"), DanfseTributos.cofinsApuracaoPropria(soPis));
 
-        final var soCofins = nota(NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao.PIS_NAO_RETIDO_COFINS_CSLL_NAO_RETIDOS);
+        final DanfseNota soCofins = nota(NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao.PIS_NAO_RETIDO_COFINS_CSLL_NAO_RETIDOS);
         Assertions.assertEquals(new BigDecimal("400.00"), DanfseTributos.contribuicoesSociaisRetidas(soCofins));
         Assertions.assertEquals(new BigDecimal("65.00"), DanfseTributos.pisApuracaoPropria(soCofins));
         Assertions.assertEquals(BigDecimal.ZERO, DanfseTributos.cofinsApuracaoPropria(soCofins));
 
-        final var todos = nota(NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao.RETIDOS);
+        final DanfseNota todos = nota(NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao.RETIDOS);
         Assertions.assertEquals(new BigDecimal("465.00"), DanfseTributos.contribuicoesSociaisRetidas(todos));
     }
 
     @Test
     void deveIndicarOsTributosRetidosDeCadaTipoDeRetencao() {
-        final var pisRetido = "13459";
-        final var cofinsRetida = "13467";
-        for (final var retencao : NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao.values()) {
+        final String pisRetido = "13459";
+        final String cofinsRetida = "13467";
+        for (final NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao retencao : NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao.values()) {
             Assertions.assertEquals(pisRetido.contains(retencao.getCodigo()), retencao.isPisRetido(), retencao.getDescricao());
             Assertions.assertEquals(cofinsRetida.contains(retencao.getCodigo()), retencao.isCofinsRetido(), retencao.getDescricao());
         }
@@ -65,7 +65,7 @@ class DanfseTributosTest {
 
     @Test
     void deveSemInformacaoQuandoNaoHaGrupoPisCofins() {
-        final var nota = DanfseFixtures.nota(DanfseFixtures.MINIMA);
+        final DanfseNota nota = DanfseFixtures.nota(DanfseFixtures.MINIMA);
         Assertions.assertNull(DanfseTributos.contribuicoesSociaisRetidas(nota));
         Assertions.assertNull(DanfseTributos.pisApuracaoPropria(nota));
         Assertions.assertNull(DanfseTributos.cofinsApuracaoPropria(nota));

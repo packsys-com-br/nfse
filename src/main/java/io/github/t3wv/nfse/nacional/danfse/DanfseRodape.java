@@ -13,6 +13,15 @@ import static io.github.t3wv.nfse.nacional.danfse.DanfseCanvas.PRETO;
 import static io.github.t3wv.nfse.nacional.danfse.DanfseCanvas.RECUO;
 import static io.github.t3wv.nfse.nacional.danfse.DanfseCanvas.TAMANHO_CONTEUDO;
 import static io.github.t3wv.nfse.nacional.danfse.DanfseCanvas.TAMANHO_ROTULO;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalAtvEvento;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfDPS;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfoCompl;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfoIBSCBSInfoImovel;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalInfoObra;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalServ;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalTribTotal;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalTribTotalMonet;
+import io.github.t3wv.nfse.nacional.classes.nfsenacional.NFSeSefinNacionalTribTotalPercent;
 
 /**
  * Bloco de informações complementares e canhoto opcional (itens 2.1.12, 2.1.13 e 2.3.3 da NT 008). As informações
@@ -53,14 +62,14 @@ final class DanfseRodape {
      * @return informações complementares, ou string vazia se a NFS-e não tiver nenhuma
      */
     static String informacoes(final DanfseNota nota) {
-        final var dps = nota.dps();
-        final var servico = dps.getServicoPrestado();
-        final var complemento = servico == null ? null : servico.getInformacoesComplementares();
-        final var obra = servico == null ? null : servico.getObra();
-        final var evento = servico == null ? null : servico.getEvento();
-        final var imovel = nota.ibsCbsDps() == null ? null : nota.ibsCbsDps().getImovel();
-        final var inscricaoObra = obra == null ? null : obra.getInscricaoImobiliariaFiscal();
-        final var inscricaoImobiliaria = DanfseFormatador.texto(inscricaoObra).isEmpty() && imovel != null ? imovel.getInscImobFisc() : inscricaoObra;
+        final NFSeSefinNacionalInfDPS dps = nota.dps();
+        final NFSeSefinNacionalServ servico = dps.getServicoPrestado();
+        final NFSeSefinNacionalInfoCompl complemento = servico == null ? null : servico.getInformacoesComplementares();
+        final NFSeSefinNacionalInfoObra obra = servico == null ? null : servico.getObra();
+        final NFSeSefinNacionalAtvEvento evento = servico == null ? null : servico.getEvento();
+        final NFSeSefinNacionalInfoIBSCBSInfoImovel imovel = nota.ibsCbsDps() == null ? null : nota.ibsCbsDps().getImovel();
+        final String inscricaoObra = obra == null ? null : obra.getInscricaoImobiliariaFiscal();
+        final String inscricaoImobiliaria = DanfseFormatador.texto(inscricaoObra).isEmpty() && imovel != null ? imovel.getInscImobFisc() : inscricaoObra;
 
         final List<String> partes = new ArrayList<>();
         adicionar(partes, "Inf. Cont.: ", complemento == null ? null : complemento.getInformacoesComplementares());
@@ -78,7 +87,7 @@ final class DanfseRodape {
     }
 
     private static void adicionar(final List<String> partes, final String titulo, final String valor) {
-        final var texto = DanfseFormatador.texto(valor);
+        final String texto = DanfseFormatador.texto(valor);
         if (!texto.isEmpty()) {
             partes.add(titulo + texto);
         }
@@ -92,15 +101,15 @@ final class DanfseRodape {
      * @return texto dos totais aproximados dos tributos
      */
     static String totaisAproximados(final DanfseNota nota) {
-        final var prefixo = "Totais Aproximados dos Tributos cfe. Lei nº 12.741/2012: ";
-        final var totTrib = nota.totTrib();
+        final String prefixo = "Totais Aproximados dos Tributos cfe. Lei nº 12.741/2012: ";
+        final NFSeSefinNacionalTribTotal totTrib = nota.totTrib();
         if (totTrib != null && totTrib.getValorTotalTributos() != null) {
-            final var valores = totTrib.getValorTotalTributos();
+            final NFSeSefinNacionalTribTotalMonet valores = totTrib.getValorTotalTributos();
             return prefixo + "Federais: " + DanfseFormatador.valor(valores.getValorTributosFederais()) + "; Estaduais: "
                     + DanfseFormatador.valor(valores.getValorTributosEstaduais()) + "; Municipais: " + DanfseFormatador.valor(valores.getValorTributosMunicipais());
         }
         if (totTrib != null && totTrib.getPercentualTotalTributos() != null) {
-            final var percentuais = totTrib.getPercentualTotalTributos();
+            final NFSeSefinNacionalTribTotalPercent percentuais = totTrib.getPercentualTotalTributos();
             return prefixo + "Federais: " + DanfseFormatador.percentual(percentuais.getPercentualTributosFederais()) + "; Estaduais: "
                     + DanfseFormatador.percentual(percentuais.getPercentualTributosEstaduais()) + "; Municipais: "
                     + DanfseFormatador.percentual(percentuais.getPercentualTributosMunicipais());
@@ -108,7 +117,7 @@ final class DanfseRodape {
         if (totTrib != null && totTrib.getPercentualTotalSimplesNacional() != null) {
             return prefixo + "Simples Nacional: " + DanfseFormatador.percentual(totTrib.getPercentualTotalSimplesNacional());
         }
-        final var semInformacao = DanfseFormatador.SEM_INFORMACAO;
+        final String semInformacao = DanfseFormatador.SEM_INFORMACAO;
         return prefixo + "Federais: " + semInformacao + "; Estaduais: " + semInformacao + "; Municipais: " + semInformacao;
     }
 
@@ -160,13 +169,13 @@ final class DanfseRodape {
         canvas.retangulo(0, LARGURA, ALTURA_CANHOTO, ESPESSURA_DIVISORIA);
         canvas.linhaVertical(DanfseCanvas.coluna(1) - 0.01f * CM, ALTURA_CANHOTO, ESPESSURA_DIVISORIA);
         canvas.linhaVertical(DanfseCanvas.coluna(2) - 0.01f * CM, ALTURA_CANHOTO, ESPESSURA_DIVISORIA);
-        final var baseRotulo = 1.5f + TAMANHO_ROTULO * 0.72f + 1f;
+        final float baseRotulo = 1.5f + TAMANHO_ROTULO * 0.72f + 1f;
         canvas.texto(RECUO, baseRotulo, DanfseCanvas.larguraColunas(0, 1) - 2 * RECUO, "DATA CIENTIFICAÇÃO:", TAMANHO_ROTULO, true, ESQUERDA, PRETO);
         canvas.texto(DanfseCanvas.coluna(1) + RECUO, baseRotulo, DanfseCanvas.larguraColunas(1, 1) - 2 * RECUO, "IDENTIFICAÇÃO E ASSINATURA", TAMANHO_ROTULO,
                 true, ESQUERDA, PRETO);
         canvas.texto(DanfseCanvas.coluna(2) + RECUO, baseRotulo, DanfseCanvas.larguraColunas(2, 2) - 2 * RECUO, "Nº NFS-e / CHAVE NFS-e", TAMANHO_ROTULO,
                 true, ESQUERDA, PRETO);
-        final var numeroChave = DanfseFormatador.limitar(DanfseFormatador.ouTraco(nota.inf().getNumeroNFSe()) + " / " + nota.chaveAcesso(), 66);
+        final String numeroChave = DanfseFormatador.limitar(DanfseFormatador.ouTraco(nota.inf().getNumeroNFSe()) + " / " + nota.chaveAcesso(), 66);
         canvas.texto(DanfseCanvas.coluna(2) + RECUO, baseRotulo + 1.5f + TAMANHO_CONTEUDO, DanfseCanvas.larguraColunas(2, 2) - 2 * RECUO, numeroChave,
                 TAMANHO_CONTEUDO, false, ESQUERDA, PRETO);
         canvas.avancar(ALTURA_CANHOTO);

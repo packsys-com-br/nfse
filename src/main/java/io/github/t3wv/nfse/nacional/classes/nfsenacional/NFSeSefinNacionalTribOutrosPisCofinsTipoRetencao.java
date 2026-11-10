@@ -37,20 +37,32 @@ public enum NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao {
      * @return true se o PIS é retido neste tipo de retenção (códigos 1, 3, 4, 5 e 9).
      */
     public boolean isPisRetido() {
-        return switch (this) {
-            case PIS_COFINS_RETIDOS, RETIDOS, PIS_COFINS_RETIDOS_CSLL_NAO_RETIDO, PIS_RETIDO_COFINS_CSLL_NAO_RETIDOS, COFINS_NAO_RETIDO_PIS_CSLL_RETIDOS -> true;
-            default -> false;
-        };
+        switch (this) {
+            case PIS_COFINS_RETIDOS:
+            case RETIDOS:
+            case PIS_COFINS_RETIDOS_CSLL_NAO_RETIDO:
+            case PIS_RETIDO_COFINS_CSLL_NAO_RETIDOS:
+            case COFINS_NAO_RETIDO_PIS_CSLL_RETIDOS:
+                return true;
+            default:
+                return false;
+        }
     }
 
     /**
      * @return true se a COFINS é retida neste tipo de retenção (códigos 1, 3, 4, 6 e 7).
      */
     public boolean isCofinsRetido() {
-        return switch (this) {
-            case PIS_COFINS_RETIDOS, RETIDOS, PIS_COFINS_RETIDOS_CSLL_NAO_RETIDO, COFINS_RETIDO_PIS_CSLL_NAO_RETIDO, PIS_NAO_RETIDO_COFINS_CSLL_NAO_RETIDOS -> true;
-            default -> false;
-        };
+        switch (this) {
+            case PIS_COFINS_RETIDOS:
+            case RETIDOS:
+            case PIS_COFINS_RETIDOS_CSLL_NAO_RETIDO:
+            case COFINS_RETIDO_PIS_CSLL_NAO_RETIDO:
+            case PIS_NAO_RETIDO_COFINS_CSLL_NAO_RETIDOS:
+                return true;
+            default:
+                return false;
+        }
     }
 
     public static NFSeSefinNacionalTribOutrosPisCofinsTipoRetencao valueOfCodigo(final String codigo) {

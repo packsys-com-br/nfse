@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import javax.xml.transform.stream.StreamSource;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Grupo atvEvento da DPS conforme o TCAtvEvento do leiaute 1.01: xNome, dtIni, dtFim e a escolha entre idAtvEvt e end.
@@ -30,14 +31,14 @@ class NFSeSefinNacionalAtvEventoTest {
     }
 
     private static void assertValidoNoXsd(final NFSeSefinNacionalDPS dps) throws Exception {
-        final var validador = new NFSeXmlValidator(new StreamSource(NFSeSefinNacionalAtvEventoTest.class.getClassLoader().getResource(XSD_DPS).toURI().toString()));
-        final var erros = validador.validateAndGetErrors(dps.toXml()).getLeft();
+        final NFSeXmlValidator validador = new NFSeXmlValidator(new StreamSource(NFSeSefinNacionalAtvEventoTest.class.getClassLoader().getResource(XSD_DPS).toURI().toString()));
+        final List<String> erros = validador.validateAndGetErrors(dps.toXml()).getLeft();
         Assertions.assertTrue(erros.isEmpty(), String.join("; ", erros));
     }
 
     @Test
     void deveLerEventoComIdentificacaoDaAtividade() throws Exception {
-        final var evento = lerEvento("<idAtvEvt>EVT-2026-001</idAtvEvt>");
+        final NFSeSefinNacionalAtvEvento evento = lerEvento("<idAtvEvt>EVT-2026-001</idAtvEvt>");
         Assertions.assertEquals("Show de rock", evento.getDescricao());
         Assertions.assertEquals(LocalDate.of(2026, 9, 10), evento.getDataInicio());
         Assertions.assertEquals(LocalDate.of(2026, 9, 12), evento.getDataFim());
@@ -47,7 +48,7 @@ class NFSeSefinNacionalAtvEventoTest {
 
     @Test
     void deveLerEventoComEnderecoNacional() throws Exception {
-        final var evento = lerEvento("<end><CEP>01310100</CEP><xLgr>AVENIDA PAULISTA</xLgr><nro>1000</nro><xBairro>BELA VISTA</xBairro></end>");
+        final NFSeSefinNacionalAtvEvento evento = lerEvento("<end><CEP>01310100</CEP><xLgr>AVENIDA PAULISTA</xLgr><nro>1000</nro><xBairro>BELA VISTA</xBairro></end>");
         Assertions.assertNull(evento.getId());
         Assertions.assertEquals("01310100", evento.getEndereco().getCEP());
         Assertions.assertNull(evento.getEndereco().getEnderecoExterior());
@@ -56,7 +57,7 @@ class NFSeSefinNacionalAtvEventoTest {
 
     @Test
     void deveLerEventoComEnderecoNoExterior() throws Exception {
-        final var evento = lerEvento("<end><endExt><cEndPost>33101</cEndPost><xCidade>Miami</xCidade><xEstProvReg>Florida</xEstProvReg></endExt>"
+        final NFSeSefinNacionalAtvEvento evento = lerEvento("<end><endExt><cEndPost>33101</cEndPost><xCidade>Miami</xCidade><xEstProvReg>Florida</xEstProvReg></endExt>"
                 + "<xLgr>BISCAYNE BOULEVARD</xLgr><nro>200</nro><xBairro>DOWNTOWN</xBairro></end>");
         Assertions.assertNull(evento.getEndereco().getCEP());
         Assertions.assertEquals("Miami", evento.getEndereco().getEnderecoExterior().getCidade());
@@ -71,7 +72,7 @@ class NFSeSefinNacionalAtvEventoTest {
 
     @Test
     void deveGerarDpsValidaNoXsdComIdentificacaoDaAtividade() throws Exception {
-        final var dps = dps();
+        final NFSeSefinNacionalDPS dps = dps();
         dps.getInfDPS().getServicoPrestado().setEvento(new NFSeSefinNacionalAtvEvento().setDescricao("Show de rock")
                 .setDataInicio(LocalDate.of(2026, 9, 10)).setDataFim(LocalDate.of(2026, 9, 12)).setId("EVT-2026-001"));
         Assertions.assertTrue(dps.toXml().contains("<atvEvento><xNome>Show de rock</xNome><dtIni>2026-09-10</dtIni><dtFim>2026-09-12</dtFim>"
@@ -81,7 +82,7 @@ class NFSeSefinNacionalAtvEventoTest {
 
     @Test
     void deveGerarDpsValidaNoXsdComEnderecoDoEvento() throws Exception {
-        final var dps = dps();
+        final NFSeSefinNacionalDPS dps = dps();
         dps.getInfDPS().getServicoPrestado().setEvento(new NFSeSefinNacionalAtvEvento().setDescricao("Show de rock")
                 .setDataInicio(LocalDate.of(2026, 9, 10)).setDataFim(LocalDate.of(2026, 9, 12))
                 .setEndereco(new NFSeSefinNacionalEnderecoSimples().setCEP("01310100").setLogradouro("AVENIDA PAULISTA").setNumero("1000").setBairro("BELA VISTA")));
